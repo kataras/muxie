@@ -40,11 +40,14 @@
   </a>
 </div>
 
-
 <div align="center">
   <sub>The little router that could. Built with ❤︎ by
   <a href="https://twitter.com/MakisMaropoulos">Gerasimos Maropoulos</a>
 </div>
+
+[![Benchmark chart between muxie, httprouter, gin and gorilla mux](_benchmarks/chart-15-oct-2018.png)](_benchmarks)
+
+_Last updated on October 15, 2018._ Click [here](_benchmarks/README.md) to read more details.
 
 ## Features
 
