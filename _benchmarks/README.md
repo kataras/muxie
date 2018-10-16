@@ -1,6 +1,10 @@
 # Benchmarks
 
-Last updated on October 15, 2018.
+Last updated on October 16, 2018.
+
+> October 16: add echo and vestigo benchmarks against the same environments
+
+> October 15: benchmark between muxie, httprouter, gin and gorilla mux
 
 ## Hardware
 
@@ -20,8 +24,16 @@ Last updated on October 15, 2018.
     * Bench code: [gin/main.go](gin/main.go)
 * **gorilla mux**: https://github.com/gorilla/mux, latest version **1.6.2**
     * Bench code: [gorilla-mux/main.go](gorilla-mux/main.go)
+* **echo**: https://github.com/labstack/echo, latest version **3.3.6**
+    * Bench code: [echo/main.go](echo/main.go)
+* **vestigo**: https://github.com/husobee/vestigo, latest version **1.1.0**
+    * Bench code: [vestigo/main.go](vestigo/main.go)
 
 ## Results
+
+![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo and vestigo](chart-16-oct-2018.png)
+
+> Higher is better
 
 ### Static Path
 
@@ -45,6 +57,14 @@ bombardier -c 125 -n 1000000 http://localhost:3000
 
 ![](static_path_gorilla-mux.png)
 
+#### Echo
+
+![](static_path_echo.png)
+
+#### Vestigo
+
+![](static_path_vestigo.png)
+
 ### Parameterized (dynamic) Path
 
 ```sh
@@ -66,3 +86,11 @@ bombardier -c 125 -n 1000000 http://localhost:3000/user/42
 #### Gorilla Mux
 
 ![](parameterized_path_gorilla-mux.png)
+
+#### Echo
+
+![](parameterized_path_echo.png)
+
+#### Vestigo
+
+![](parameterized_path_vestigo.png)
