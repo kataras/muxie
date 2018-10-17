@@ -45,13 +45,13 @@
   <a href="https://twitter.com/MakisMaropoulos">Gerasimos Maropoulos</a>
 </div>
 
-[![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo and vestigo](_benchmarks/chart-16-oct-2018.png)](_benchmarks)
+<!-- [![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo, vestigo and chi](_benchmarks/chart-17-oct-2018.png)](_benchmarks)
 
-_Last updated on October 16, 2018._ Click [here](_benchmarks/README.md) to read more details.
+_Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read more details. -->
 
 ## Features
 
-- __trie based:__ performance and useness are first class citizens, Muxie is based on the prefix tree data structure, designed from scratch and built for HTTP, and it is among the fastest outhere, if not the fastest one
+- __trie based:__ [performance](_benchmarks/README.md) and useness are first class citizens, Muxie is based on the prefix tree data structure, designed from scratch and built for HTTP, and it is among the fastest outhere, if not the fastest one
 - __grouping:__ group common routes based on their path prefixes
 - __no external dependencies:__ weighing `30kb`, Muxie is a tiny little library without external dependencies
 - __closet wildcard resolution and custom 404:__ wildcards, named parameters and static paths can all live and play together nice and fast in the same path prefix(!)
@@ -75,12 +75,17 @@ import (
     "fmt"
     "net/http"
 
+    "github.com/rs/cors"
+
     "github.com/kataras/muxie"
 )
 
 func main() {
     mux := muxie.NewMux()
     mux.PathCorrection = true
+
+    // _examples/6_middleware
+    mux.Use(cors.Default().Handler)
 
     mux.HandleFunc("/", indexHandler)
     // Root wildcards, can be used for site-level custom not founds(404).
