@@ -54,7 +54,7 @@ _Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read 
 - __trie based:__ [performance](_benchmarks/README.md) and useness are first class citizens, Muxie is based on the prefix tree data structure, designed from scratch and built for HTTP, and it is among the fastest outhere, if not the fastest one
 - __grouping:__ group common routes based on their path prefixes
 - __no external dependencies:__ weighing `30kb`, Muxie is a tiny little library without external dependencies
-- __closet wildcard resolution and custom 404:__ wildcards, named parameters and static paths can all live and play together nice and fast in the same path prefix(!)
+- __closest wildcard resolution and prefix-based custom 404:__ wildcards, named parameters and static paths can all live and play together nice and fast in the same path prefix or suffix(!)
 - __small api:__ with only 3 main methods for HTTP there's not much to learn
 - __compatibility:__ built to be 100% compatible with the `net/http` standard package
 
