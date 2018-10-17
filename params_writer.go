@@ -32,7 +32,8 @@ func GetParams(w http.ResponseWriter) []ParamEntry {
 }
 
 // SetParam sets manually a parameter to the "w" http.ResponseWriter which should be a *paramsWriter.
-// This is not commonly used by the end-developers.
+// This is not commonly used by the end-developers,
+// unless sharing values(string messages only) between handlers is absolutely necessary.
 func SetParam(w http.ResponseWriter, key, value string) bool {
 	if store, ok := w.(*paramsWriter); ok {
 		store.Set(key, value)

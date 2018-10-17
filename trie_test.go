@@ -118,7 +118,7 @@ func testTrie(t *testing.T, oneByOne bool) {
 	// insert.
 	for idx, tt := range tests {
 		if !oneByOne {
-			tree.Insert(tt.key, WithTag(tt.routeName))
+			tree.insert(tt.key, tt.routeName, nil, nil)
 		}
 
 		for reqIdx, req := range tt.requests {
@@ -131,7 +131,7 @@ func testTrie(t *testing.T, oneByOne bool) {
 	// run.
 	for idx, tt := range tests {
 		if oneByOne {
-			tree.Insert(tt.key, WithTag(tt.routeName))
+			tree.insert(tt.key, tt.routeName, nil, nil)
 		}
 		params := new(paramsWriter)
 		for reqIdx, req := range tt.requests {

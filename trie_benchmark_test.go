@@ -6,7 +6,7 @@ import (
 
 func initTree(tree *Trie) {
 	for _, tt := range tests {
-		tree.Insert(tt.key, WithTag(tt.routeName))
+		tree.insert(tt.key, tt.routeName, nil, nil)
 	}
 }
 

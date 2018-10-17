@@ -27,7 +27,10 @@ type Mux struct {
 	Routes         *Trie
 
 	paramsPool *sync.Pool
-	root       string
+
+	// per mux
+	root          string
+	beginHandlers []Wrapper
 }
 
 // NewMux returns a new HTTP multiplexer which uses a fast, if not the fastest
@@ -44,9 +47,69 @@ func NewMux() *Mux {
 	}
 }
 
+// Use adds middleware that should be called before each mux route's main handler.
+// Should be called before `Handle/HandleFunc`. Order matters.
+//
+// A Wrapper is just a type of `func(http.Handler) http.Handler`
+// which is a common type definition for net/http middlewares.
+//
+// To add a middleware for a specific route and not in the whole mux
+// use the `Handle/HandleFunc` with the package-level `muxie.Pre` function instead.
+// Functionality of `Use` is pretty self-explained but new gophers should
+// take a look of the examples for further details.
+func (m *Mux) Use(middlewares ...Wrapper) {
+	m.beginHandlers = append(m.beginHandlers, middlewares...)
+}
+
+type (
+	// Wrapper is just a type of `func(http.Handler) http.Handler`
+	// which is a common type definition for net/http middlewares.
+	Wrapper func(http.Handler) http.Handler
+
+	// Wrappers contains `Wrapper`s that can be registered and used by a "main route handler".
+	// Look the `Pre` and `For/ForFunc` functions too.
+	Wrappers struct {
+		pre []Wrapper
+	}
+)
+
+// For registers the wrappers for a specific handler and returns a handler
+// that can be passed via the `Handle` function.
+func (w Wrappers) For(main http.Handler) http.Handler {
+	if len(w.pre) > 0 {
+		for i, lidx := 0, len(w.pre)-1; i <= lidx; i++ {
+			main = w.pre[lidx-i](main)
+		}
+	}
+
+	// keep note that if no middlewares then
+	// it will return the main one untouched,
+	// the check of length of w.pre is because we may add "done handlers" as well in the future, if community asks for that.
+	return main
+}
+
+// ForFunc registers the wrappers for a specific raw handler function
+// and returns a handler that can be passed via the `Handle` function.
+func (w Wrappers) ForFunc(mainFunc func(http.ResponseWriter, *http.Request)) http.Handler {
+	return w.For(http.HandlerFunc(mainFunc))
+}
+
+// Pre starts a chain of handlers for wrapping a "main route handler"
+// the registered "middleware" will run before the main handler(see `Wrappers#For/ForFunc`).
+//
+// Usage:
+// mux := muxie.NewMux()
+// myMiddlewares :=  muxie.Pre(myFirstMiddleware, mySecondMiddleware)
+// mux.Handle("/", myMiddlewares.ForFunc(myMainRouteHandler))
+func Pre(middleware ...Wrapper) Wrappers {
+	return Wrappers{pre: middleware}
+}
+
 // Handle registers a route handler for a path pattern.
 func (m *Mux) Handle(pattern string, handler http.Handler) {
-	m.Routes.Insert(m.root+pattern, WithHandler(handler))
+	m.Routes.Insert(m.root+pattern,
+		WithHandler(
+			Pre(m.beginHandlers...).For(handler)))
 }
 
 // HandleFunc registers a route handler function for a path pattern.
@@ -113,9 +176,11 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // SubMux is the child of a main Mux.
 type SubMux interface {
+	Of(prefix string) SubMux
+	Unlink() SubMux
+	Use(middlewares ...Wrapper)
 	Handle(pattern string, handler http.Handler)
 	HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
-	Of(prefix string) SubMux
 }
 
 // Of returns a new Mux which its Handle and HandleFunc will register the path based on given "prefix", i.e:
@@ -147,6 +212,40 @@ func (m *Mux) Of(prefix string) SubMux {
 
 	return &Mux{
 		Routes: m.Routes,
-		root:   prefix,
+
+		root:          prefix,
+		beginHandlers: append([]Wrapper{}, m.beginHandlers...),
 	}
+}
+
+/* Notes:
+
+Four options to solve optionally "inherition" of parent's middlewares but dismissed:
+
+- I could add options for "inherition" of middlewares inside the `Mux#Use` itself.
+  But this is a problem because the end-dev will have to use a specific muxie's constant even if he doesn't care about the other option.
+- Create a new function like `UseOnly` or `UseExplicit`
+  which will remove any previous middlewares and use only the new one.
+  But this has a problem of making the `Use` func to act differently and debugging will be a bit difficult if big app if called after the `UseOnly`.
+- Add a new func for creating new groups to remove any inherited middlewares from the parent.
+  But with this, we will have two functions for the same thing and users may be confused about this API design.
+- Put the options to the existing `Of` function, and make them optionally by functional design of options.
+  But this will make things ugly and may confuse users as well, there is a better way.
+
+Solution: just add a function like `Unlink`
+to remove any inherited fields (now and future feature requests), so we don't have
+breaking changes and etc. This `Unlink`, which will return the same SubMux, it can be used like `v1 := mux.Of(..).Unlink()`
+*/
+
+// Unlink will remove any inheritance fields from the parent mux (and its parent)
+// that are inherited with the `Of` function.
+// Returns the current SubMux. Usage:
+//
+// mux := NewMux()
+// mux.Use(myLoggerMiddleware)
+// v1 := mux.Of("/v1").Unlink() // v1 will no longer have the "myLoggerMiddleware".
+// v1.HandleFunc("/users", myHandler)
+func (m *Mux) Unlink() SubMux {
+	m.beginHandlers = m.beginHandlers[0:0]
+	return m
 }

@@ -46,6 +46,10 @@ type InsertOption func(*Node)
 
 // WithHandler sets the node's `Handler` field (useful for HTTP).
 func WithHandler(handler http.Handler) InsertOption {
+	if handler == nil {
+		panic("muxie/WithHandler: empty handler")
+	}
+
 	return func(n *Node) {
 		if n.Handler == nil {
 			n.Handler = handler
@@ -71,24 +75,15 @@ func WithData(data interface{}) InsertOption {
 }
 
 // Insert adds a node to the trie.
-func (t *Trie) Insert(key string, options ...InsertOption) {
-	n := t.insert(key, "", nil, nil)
+func (t *Trie) Insert(pattern string, options ...InsertOption) {
+	if pattern == "" {
+		panic("muxie/trie#Insert: empty pattern")
+	}
+
+	n := t.insert(pattern, "", nil, nil)
 	for _, opt := range options {
 		opt(n)
 	}
-}
-
-// InsertRoute adds a route node to the trie, handler and pattern are required.
-func (t *Trie) InsertRoute(pattern, routeName string, handler http.Handler) {
-	if pattern == "" {
-		panic("muxie/trie#InsertRoute: empty pattern")
-	}
-
-	if handler == nil {
-		panic("muxie/trie#InsertRoute: empty handler")
-	}
-
-	t.insert(pattern, routeName, nil, handler)
 }
 
 const (
