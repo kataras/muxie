@@ -18,6 +18,23 @@ func main() {
 		HandleFunc(http.MethodGet, getUser).
 		HandleFunc(http.MethodPost, saveUser).
 		HandleFunc(http.MethodDelete, deleteUser))
+	/*
+		muxie.Methods().
+			HandleFunc("POST, PUT", func(w http.ResponseWriter, r *http.Request) {[...]}
+
+		^ can accept many methods for the same handler
+		^ methods should be separated by comma, comma following by a space or just space
+
+		Equivalent to:
+		mux.HandleFunc("/save", func(w http.ResponseWriter, r *http.Request){
+			if r.Method != http.MethodPost && r.Method != http.MethodPut {
+				w.Header().Set("Allow", "POST, PUT")
+				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+				return
+			}
+			[...]
+		})
+	*/
 
 	log.Println("Server started at http://localhost:8080\nGET: http://localhost:8080/users\nGET, POST, DELETE: http://localhost:8080/user/:id")
 	log.Fatal(http.ListenAndServe(":8080", mux))

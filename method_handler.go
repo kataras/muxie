@@ -9,7 +9,7 @@ import (
 // to register handler for specific HTTP Methods inside the `Mux#Handle/HandleFunc`.
 // Usage:
 // mux := muxie.NewMux()
-// mux.Handle("/user", muxie.Methods().
+// mux.Handle("/user/:id", muxie.Methods().
 //     Handle("GET", getUserHandler).
 //     Handle("POST", saveUserHandler))
 func Methods() *MethodHandler {
@@ -18,17 +18,17 @@ func Methods() *MethodHandler {
 	//
 	// mux := muxie.NewMux()
 	//
-	// 1. mux.Handle("/user", muxie.ByMethod("GET", getHandler).And/AndFunc("POST", postHandlerFunc))
+	// 1. mux.Handle("/user/:id", muxie.ByMethod("GET", getHandler).And/AndFunc("POST", postHandlerFunc))
 	//
-	// 2. mux.Handle("/user", muxie.ByMethods{
+	// 2. mux.Handle("/user/:id", muxie.ByMethods{
 	// 	  "GET": getHandler,
 	// 	  "POST" http.HandlerFunc(postHandlerFunc),
 	//   }) <- the only downside of this is that
 	// we lose the "Allow" header, which is not so important but it is RCF so we have to follow it.
 	//
-	// 3. mux.Handle("/user", muxie.Method("GET", getUserHandler).Method("POST", saveUserHandler))
+	// 3. mux.Handle("/user/:id", muxie.Method("GET", getUserHandler).Method("POST", saveUserHandler))
 	//
-	// 4. mux.Handle("/user", muxie.Methods().
+	// 4. mux.Handle("/user/:id", muxie.Methods().
 	// 	      Handle("GET", getHandler).
 	// 	  HandleFunc("POST", postHandler))
 	//
@@ -49,8 +49,26 @@ type MethodHandler struct {
 
 // Handle adds a handler to be responsible for a specific HTTP Method.
 // Returns this MethodHandler for further calls.
+// Usage:
+// Handle("GET", myGetHandler).HandleFunc("DELETE", func(w http.ResponseWriter, r *http.Request){[...]})
+// Handle("POST, PUT", saveOrUpdateHandler)
+//        ^ can accept many methods for the same handler
+//        ^ methods should be separated by comma, comma following by a space or just space
 func (m *MethodHandler) Handle(method string, handler http.Handler) *MethodHandler {
-	method = strings.ToUpper(method)
+	multiMethods := strings.FieldsFunc(method, func(c rune) bool {
+		return c == ',' || c == ' '
+	})
+
+	if len(multiMethods) > 1 {
+		for _, method := range multiMethods {
+			m.Handle(method, handler)
+		}
+
+		return m
+	}
+
+	method = strings.ToUpper(strings.TrimSpace(method))
+
 	if m.methodsAllowedStr == "" {
 		m.methodsAllowedStr = method
 	} else {

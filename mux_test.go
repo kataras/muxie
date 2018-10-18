@@ -1,6 +1,7 @@
 package muxie
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +14,27 @@ func expect(t *testing.T, method, url string) *testie {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	return testReq(t, req)
+}
+
+func expectWithBody(t *testing.T, method, url string, body string, headers http.Header) *testie {
+	req, err := http.NewRequest(method, url, bytes.NewBufferString(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(headers) > 0 {
+		req.Header = http.Header{}
+		for k, v := range headers {
+			req.Header[k] = v
+		}
+	}
+
+	return testReq(t, req)
+}
+
+func testReq(t *testing.T, req *http.Request) *testie {
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)

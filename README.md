@@ -15,8 +15,13 @@
 <div align="center">
   <!-- Release -->
   <a href="https://github.com/kataras/muxie/releases">
-    <img src="https://img.shields.io/badge/release%20-v1.0.2-0077b3.svg?style=flat-squaree"
+    <img src="https://img.shields.io/badge/release%20-v1.0.3-0077b3.svg?style=flat-squaree"
       alt="Release/stability" />
+  </a>
+  <!-- Godocs -->
+  <a href="https://godoc.org/github.com/kataras/muxie">
+    <img src="https://img.shields.io/badge/go-docs-teal.svg?style=flat-square"
+      alt="Godocs" />
   </a>
   <!-- Build Status -->
   <a href="https://travis-ci.org/kataras/muxie">
