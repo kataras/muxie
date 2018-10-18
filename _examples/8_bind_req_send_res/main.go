@@ -49,7 +49,7 @@ func main() {
 		}
 	})
 
-	fmt.Println(`Server started at http://localhost:8080\n
+	fmt.Println(`Server started at http://localhost:8080
 :: How to...
 Read from incoming request
 

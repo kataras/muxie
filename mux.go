@@ -23,6 +23,51 @@ import (
 //
 // See `NewMux`.
 type Mux struct {
+	// Hosts is the optional map of hosts to routers.
+	// The key is the exactly host line, i.e mysubdomain.mydomain.com:8080
+	// including the domain and the port OR an asterix "*" to match any subdomain.
+	// The value is any http.Handler, let's say a new muxie.NewMux() which will build
+	// the subdomain's API.
+	//
+	// These hosts are not sharing begin handlers registered via `Use`,
+	// that is a choice that end-developer's have to take.
+	// You can share middlewares between different Mux instances
+	// by using the `muxie.Pre` to define the list of handlers that should ran everywhere
+	// and add them to each Mux instance, i.e:
+	// ... mySharingMiddlewares := muxie.Pre(myGlobalRootLogMiddleware, ...)
+	// ... mux := muxie.NewMux()
+	// ... mux.Use(mySharingMiddlewares...)
+	// ...
+	// ... mySubdomain := muxie.NewMux()
+	// ... mySubdomain.Use(mySharingMiddlewares...)
+	// ...
+	// ... mux.Hosts["mysubdomain.localhost:8080"] = mySubdomain
+	Hosts map[string]http.Handler /* Design notes, the latest one was selected:
+	[1]
+	mySubdomain := mux.WithHost("mysubdomain")
+	mySubdomain.HandleFunc("/", handleMySubdomainIndex)
+
+	mySubSubdomain := mySubdomain.WithHost("mysubsubdomain")
+	mySubSubdomain.HandleFunc("/", handleSubMySubdomainIndex)
+	[2]
+	mux.HandleHost("should_be_exactly_the_host_and_domain_and_port", anHttpHandler)
+	... mySubdomain := NewMux()
+	... mySubdomain.Handle/HandleFunc(path, handler)
+	... mux.HandleHost("mysubdomain.localhost:8080", mySubdomain)
+	[3]
+	mux.Hosts["should_be_exactly_the_host_and_domain_and_port"] = anHttpHandler
+	... mySubdomain := NewMux()
+	... mySubdomain.Handle/HandleFunc(path, handler)
+	... mux.Hosts["mysubdomain.localhost:8080"] = mySubdomain
+
+	With [2] and [3] we lose the link between the parent mux,
+	i.e middlewares, although these can be shared by `muxie.Pre` very easly, so
+	this is not problem.
+	With [2] and [3] we win simplicity and subdomains are not even coupled to this library,
+	end-developer can use any http.Handler to serve those.
+	Simplest: [3], choose that.
+	*/
+
 	PathCorrection bool
 	Routes         *Trie
 
@@ -43,7 +88,8 @@ func NewMux() *Mux {
 				return &paramsWriter{}
 			},
 		},
-		root: "",
+		root:  "",
+		Hosts: make(map[string]http.Handler),
 	}
 }
 
@@ -68,23 +114,18 @@ type (
 
 	// Wrappers contains `Wrapper`s that can be registered and used by a "main route handler".
 	// Look the `Pre` and `For/ForFunc` functions too.
-	Wrappers struct {
-		pre []Wrapper
-	}
+	Wrappers []Wrapper
 )
 
 // For registers the wrappers for a specific handler and returns a handler
 // that can be passed via the `Handle` function.
 func (w Wrappers) For(main http.Handler) http.Handler {
-	if len(w.pre) > 0 {
-		for i, lidx := 0, len(w.pre)-1; i <= lidx; i++ {
-			main = w.pre[lidx-i](main)
+	if len(w) > 0 {
+		for i, lidx := 0, len(w)-1; i <= lidx; i++ {
+			main = w[lidx-i](main)
 		}
 	}
 
-	// keep note that if no middlewares then
-	// it will return the main one untouched,
-	// the check of length of w.pre is because we may add "done handlers" as well in the future, if community asks for that.
 	return main
 }
 
@@ -102,7 +143,7 @@ func (w Wrappers) ForFunc(mainFunc func(http.ResponseWriter, *http.Request)) htt
 // myMiddlewares :=  muxie.Pre(myFirstMiddleware, mySecondMiddleware)
 // mux.Handle("/", myMiddlewares.ForFunc(myMainRouteHandler))
 func Pre(middleware ...Wrapper) Wrappers {
-	return Wrappers{pre: middleware}
+	return Wrappers(middleware)
 }
 
 // Handle registers a route handler for a path pattern.
@@ -119,6 +160,18 @@ func (m *Mux) HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *
 
 // ServeHTTP exposes and serves the registered routes.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if m.Hosts != nil {
+		if h, ok := m.Hosts[r.Host]; ok {
+			h.ServeHTTP(w, r)
+			return
+		}
+
+		if wildcardSubdomainHandler, ok := m.Hosts[WildcardParamStart]; ok {
+			wildcardSubdomainHandler.ServeHTTP(w, r)
+			return
+		}
+	}
+
 	path := r.URL.Path
 
 	if m.PathCorrection {
@@ -211,6 +264,7 @@ func (m *Mux) Of(prefix string) SubMux {
 	prefix = pathSep + strings.Trim(m.root+prefix, pathSep)
 
 	return &Mux{
+		Hosts:  m.Hosts,
 		Routes: m.Routes,
 
 		root:          prefix,
