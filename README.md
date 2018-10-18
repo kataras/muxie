@@ -15,7 +15,7 @@
 <div align="center">
   <!-- Release -->
   <a href="https://github.com/kataras/muxie/releases">
-    <img src="https://img.shields.io/badge/release%20-v1.0-0077b3.svg?style=flat-squaree"
+    <img src="https://img.shields.io/badge/release%20-v1.0.2-0077b3.svg?style=flat-squaree"
       alt="Release/stability" />
   </a>
   <!-- Build Status -->
@@ -45,9 +45,9 @@
   <a href="https://twitter.com/MakisMaropoulos">Gerasimos Maropoulos</a>
 </div>
 
-<!-- [![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo, vestigo and chi](_benchmarks/chart-17-oct-2018.png)](_benchmarks)
+[![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo, vestigo and chi](_benchmarks/chart-17-oct-2018.png)](_benchmarks)
 
-_Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read more details. -->
+_Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read more details.
 
 ## Features
 

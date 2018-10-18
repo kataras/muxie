@@ -37,13 +37,13 @@ func main() {
 	// request: http://localhost:8080/profile/kataras/what
 	// response:
 	// Profile Page Custom 404 Error Message
-	// Profile Page of: '/kataras/what' was unable to be found
+	// Profile Page of: 'kataras/what' was unable to be found
 	mux.HandleFunc("/profile/*path", func(w http.ResponseWriter, r *http.Request) {
 		path := muxie.GetParam(w, "path")
 		fmt.Fprintf(w, "Profile Page Custom 404 Error Message\nProfile Page of: '%s' was unable to be found", path)
 	})
 
-	fmt.Println("Server started at :8080")
+	fmt.Println("Server started at http://localhost:8080")
 	http.ListenAndServe(":8080", mux)
 }
 

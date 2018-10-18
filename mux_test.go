@@ -8,6 +8,54 @@ import (
 	"testing"
 )
 
+func expect(t *testing.T, method, url string) *testie {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return &testie{t: t, res: res}
+}
+
+type testie struct {
+	t   *testing.T
+	res *http.Response
+}
+
+func (te *testie) statusCode(expected int) *testie {
+	if got := te.res.StatusCode; expected != got {
+		te.t.Fatalf("%s: expected status code: %d but got %d", te.res.Request.URL, expected, got)
+	}
+
+	return te
+}
+
+func (te *testie) bodyEq(expected string) *testie {
+	b, err := ioutil.ReadAll(te.res.Body)
+	te.res.Body.Close()
+	if err != nil {
+		te.t.Fatal(err)
+	}
+
+	if got := string(b); expected != got {
+		te.t.Fatalf("%s: expected to receive '%s' but got '%s'", te.res.Request.URL, expected, got)
+	}
+
+	return te
+}
+
+func (te *testie) headerEq(key, expected string) *testie {
+	if got := te.res.Header.Get(key); expected != got {
+		te.t.Fatalf("%s: expected header value of %s to be: '%s' but got '%s'", te.res.Request.URL, key, expected, got)
+	}
+
+	return te
+}
+
 func TestMuxPathCorrection(t *testing.T) {
 	mux := NewMux()
 	mux.PathCorrection = true
@@ -19,20 +67,7 @@ func TestMuxPathCorrection(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	res, err := http.Get(srv.URL + "/hello//here/?name=kataras")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	greeting, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if expected, got := "Hello kataras", string(greeting); expected != got {
-		t.Fatalf("expected to receive '%s' but got '%s'", expected, got)
-	}
+	expect(t, http.MethodGet, srv.URL+"/hello//here/?name=kataras").bodyEq("Hello kataras")
 }
 
 func TestMuxOf(t *testing.T) {
@@ -50,48 +85,7 @@ func TestMuxOf(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	defer srv.Close()
 
-	res, err := http.Get(srv.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	greeting, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if expected, got := "Handler of /", string(greeting); expected != got {
-		t.Fatalf("expected to receive '%s' but got '%s'", expected, got)
-	}
-
-	res, err = http.Get(srv.URL + "/v1/hello")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	greeting, err = ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if expected, got := "Handler of /v1/hello", string(greeting); expected != got {
-		t.Fatalf("expected to receive '%s' but got '%s'", expected, got)
-	}
-
-	res, err = http.Get(srv.URL + "/v1")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	greeting, err = ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if expected, got := "Handler of /v1", string(greeting); expected != got {
-		t.Fatalf("expected to receive '%s' but got '%s'", expected, got)
-	}
+	expect(t, http.MethodGet, srv.URL).bodyEq("Handler of /")
+	expect(t, http.MethodGet, srv.URL+"/v1").bodyEq("Handler of /v1")
+	expect(t, http.MethodGet, srv.URL+"/v1/hello").bodyEq("Handler of /v1/hello")
 }

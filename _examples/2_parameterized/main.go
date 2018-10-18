@@ -60,7 +60,7 @@ func main() {
 	// you can use it as root wildcard as well (/*myparam).
 	// Navigate to the next example to learn how you can add your own 404 not found handler.
 
-	fmt.Println("Server started at :8080")
+	fmt.Println("Server started at http://localhost:8080")
 	http.ListenAndServe(":8080", mux)
 }
 

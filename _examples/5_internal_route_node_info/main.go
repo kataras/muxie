@@ -56,14 +56,13 @@ func main() {
 		}
 	})
 
-	fmt.Println("Server started at :8080")
-
 	// http://localhost:8080
 	// http://localhost:8080/index
 	// http://localhost:8080/about
 	// http://localhost:8080/v1/users
 	// http://localhost:8080/v1/users/42
 	// http://localhost:8080/nodes/v1
+	fmt.Println("Server started at http://localhost:8080")
 	http.ListenAndServe(":8080", mux)
 }
 

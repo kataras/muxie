@@ -56,6 +56,7 @@ func main() {
 	// http://localhost:8080
 	// http://localhost:8080/inheritor
 	// http://localhost:8080/orphan
+	log.Println("Server started at http://localhost:8080")
 	http.ListenAndServe(":8080", mux)
 }
 

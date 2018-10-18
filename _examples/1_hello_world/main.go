@@ -17,7 +17,7 @@ func main() {
 	mux.HandleFunc("/index", indexHandler)
 	mux.HandleFunc("/about", aboutHandler)
 
-	fmt.Println(`Server started at :8080
+	fmt.Println(`Server started at http://localhost:8080
 Open your browser or any other HTTP Client and navigate to:
 http://localhost:8080
 http://localhost:8080/index and
