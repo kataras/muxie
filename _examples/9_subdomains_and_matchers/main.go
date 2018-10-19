@@ -53,7 +53,7 @@ func main() {
 	// You may run your own virtual domain if you change the listening addr ":8080"
 	// to something like "mydomain.com:80".
 	//
-	// Read more at godocs of `Mux#Hosts`.
+	// Read more at godocs of `Mux#AddMatcher`.
 	fmt.Println(`Server started at http://localhost:8080
 Open your browser and navigate through:
 http://mysubdomain.localhost:8080
