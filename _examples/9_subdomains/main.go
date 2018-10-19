@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/kataras/muxie"
 )
@@ -16,26 +17,32 @@ func main() {
 	mySubdomain.HandleFunc("/", handleMySubdomainIndex)
 	mySubdomain.HandleFunc("/about", aboutHandler)
 
-	mux.Hosts["mysubdomain.localhost:8080"] = mySubdomain
+	mux.MatchHost("mysubdomain.localhost:8080", mySubdomain)
 
 	// mysubsubdomain.mysubdomain
-	mySubSubdomain := muxie.NewMux()
+	// mySubSubdomain := muxie.NewMux()
+	// mySubSubdomain.HandleFunc("/", handleMySubSubdomainIndex)
+	// mySubSubdomain.HandleFunc("/about", aboutHandler)
+	// mux.MatchHost("mysubsubdomain.mysubdomain.localhost:8080", mySubSubdomain)
+
+	// the advandage of the below is that we are able to continue with mySubSubdomain.If()..., it can be embedded
+	// but the same for the above, user is able to add matchers.
+	// Keep both on the v1 branch and not master, until I decide the final design.
+	mySubSubdomain := mux.If(muxie.Host("mysubsubdomain.mysubdomain.localhost:8080"))
 	mySubSubdomain.HandleFunc("/", handleMySubSubdomainIndex)
 	mySubSubdomain.HandleFunc("/about", aboutHandler)
-
-	mux.Hosts["mysubsubdomain.mysubdomain.localhost:8080"] = mySubSubdomain
 
 	// any other subdomain
 	myWildcardSubdomain := muxie.NewMux()
 	myWildcardSubdomain.HandleFunc("/", handleMyWildcardSubdomainIndex)
 
-	// Catch any other subdomain.
+	// Catch any other host that it is not our main localhost:8080.
 	// Extremely useful for apps that may need dynamic subdomains based on a database,
 	// usernames for example.
-	mux.Hosts["*"] = myWildcardSubdomain
-
-	// Browser will automatically work but to use an http client or POSTMAN
-	// you may want to edit your hosts, i.e on windows is going like this:
+	mux.Match(func(r *http.Request) bool { return strings.HasSuffix(r.Host, ".localhost:8080") }, myWildcardSubdomain)
+	// Chrome-based browsers will automatically work but to test with
+	// firefox or a custom http client or POSTMAN you may want to edit your hosts,
+	// i.e on windows is going like this:
 	// 127.0.0.1 mysubdomain.localhost
 	// 127.0.0.1 mysubsubdomain.mysubdomain.localhost
 	//

@@ -23,26 +23,10 @@ import (
 //
 // See `NewMux`.
 type Mux struct {
-	// Hosts is the optional map of hosts to routers.
-	// The key is the exactly host line, i.e mysubdomain.mydomain.com:8080
-	// including the domain and the port OR an asterix "*" to match any subdomain.
-	// The value is any http.Handler, let's say a new muxie.NewMux() which will build
-	// the subdomain's API.
-	//
-	// These hosts are not sharing begin handlers registered via `Use`,
-	// that is a choice that end-developer's have to take.
-	// You can share middlewares between different Mux instances
-	// by using the `muxie.Pre` to define the list of handlers that should ran everywhere
-	// and add them to each Mux instance, i.e:
-	// ... mySharingMiddlewares := muxie.Pre(myGlobalRootLogMiddleware, ...)
-	// ... mux := muxie.NewMux()
-	// ... mux.Use(mySharingMiddlewares...)
-	// ...
-	// ... mySubdomain := muxie.NewMux()
-	// ... mySubdomain.Use(mySharingMiddlewares...)
-	// ...
-	// ... mux.Hosts["mysubdomain.localhost:8080"] = mySubdomain
-	Hosts map[string]http.Handler /* Design notes, the latest one was selected:
+	/* Hosts map[string]http.Handler
+
+	:: Design notes, none accepted ::
+
 	[1]
 	mySubdomain := mux.WithHost("mysubdomain")
 	mySubdomain.HandleFunc("/", handleMySubdomainIndex)
@@ -66,6 +50,32 @@ type Mux struct {
 	With [2] and [3] we win simplicity and subdomains are not even coupled to this library,
 	end-developer can use any http.Handler to serve those.
 	Simplest: [3], choose that.
+
+	^ Discarded because on advanced scenarios the end-developer may want to fetch the data
+	at real-time, so we need a way to execute a validator before the host handler execution.
+	Replaced with the `Matcher`, `Mux#Match` and `Mux#MatchHost`.
+
+	:: Usage::
+
+	Hosts is the optional map of hosts to routers.
+	The key is the exactly host line, i.e mysubdomain.mydomain.com:8080
+	including the domain and the port OR an asterix "*" to match any subdomain.
+	The value is any http.Handler, let's say a new muxie.NewMux() which will build
+	the subdomain's API.
+
+	These hosts are not sharing begin handlers registered via `Use`,
+	that is a choice that end-developer's have to take.
+	You can share middlewares between different Mux instances
+	by using the `muxie.Pre` to define the list of handlers that should ran everywhere
+	and add them to each Mux instance, i.e:
+	... mySharingMiddlewares := muxie.Pre(myGlobalRootLogMiddleware, ...)
+	... mux := muxie.NewMux()
+	... mux.Use(mySharingMiddlewares...)
+	...
+	... mySubdomain := muxie.NewMux()
+	... mySubdomain.Use(mySharingMiddlewares...)
+	...
+	... mux.Hosts["mysubdomain.localhost:8080"] = mySubdomain
 	*/
 
 	PathCorrection bool
@@ -75,6 +85,7 @@ type Mux struct {
 
 	// per mux
 	root          string
+	matchers      []Matcher
 	beginHandlers []Wrapper
 }
 
@@ -88,9 +99,62 @@ func NewMux() *Mux {
 				return &paramsWriter{}
 			},
 		},
-		root:  "",
-		Hosts: make(map[string]http.Handler),
+		root: "",
 	}
+}
+
+type Matcher interface {
+	http.Handler
+	Match(*http.Request) bool
+}
+
+type simpleMatcher struct {
+	matchFunc func(*http.Request) bool
+	handler   http.Handler
+}
+
+func (m *simpleMatcher) Match(r *http.Request) bool {
+	return m.matchFunc(r)
+}
+
+func (m *simpleMatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	m.handler.ServeHTTP(w, r)
+}
+
+/* TODO THINKING:
+
+mux.If(matcher(request)bool) -> returns a SubMux, or "when":
+mux.When(muxie.Host("mysubdomain.localhost:8080")).Handle(mysubdomainHandler)
+
+muxie.Host -> a func(string) which will implement the matcher func(request)bool
+*/
+
+func (m *Mux) If(matcher func(*http.Request) bool) SubMux {
+	subUnlinkedMux := NewMux()
+	m.matchers = append(m.matchers, &simpleMatcher{matcher, subUnlinkedMux})
+	return subUnlinkedMux
+}
+
+// type Host string
+
+// func (s Host) Match(r *http.Request) bool {
+// 	return r.Host == string(s) || string(s) == WildcardParamStart
+// }
+
+func Host(host string) func(r *http.Request) bool {
+	return func(r *http.Request) bool {
+		return r.Host == host || host == WildcardParamStart
+	}
+}
+
+func (m *Mux) Match(matchFunc func(*http.Request) bool, handler http.Handler) {
+	m.matchers = append(m.matchers, &simpleMatcher{matchFunc, handler})
+}
+
+func (m *Mux) MatchHost(host string, handler http.Handler) {
+	m.Match(func(r *http.Request) bool {
+		return r.Host == host || host == WildcardParamStart
+	}, handler)
 }
 
 // Use adds middleware that should be called before each mux route's main handler.
@@ -160,14 +224,9 @@ func (m *Mux) HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *
 
 // ServeHTTP exposes and serves the registered routes.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if m.Hosts != nil {
-		if h, ok := m.Hosts[r.Host]; ok {
-			h.ServeHTTP(w, r)
-			return
-		}
-
-		if wildcardSubdomainHandler, ok := m.Hosts[WildcardParamStart]; ok {
-			wildcardSubdomainHandler.ServeHTTP(w, r)
+	for _, matcher := range m.matchers {
+		if matcher.Match(r) {
+			matcher.ServeHTTP(w, r)
 			return
 		}
 	}
@@ -231,6 +290,7 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type SubMux interface {
 	Of(prefix string) SubMux
 	Unlink() SubMux
+	Match(matchFunc func(*http.Request) bool, handler http.Handler)
 	Use(middlewares ...Wrapper)
 	Handle(pattern string, handler http.Handler)
 	HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
@@ -264,11 +324,11 @@ func (m *Mux) Of(prefix string) SubMux {
 	prefix = pathSep + strings.Trim(m.root+prefix, pathSep)
 
 	return &Mux{
-		Hosts:  m.Hosts,
 		Routes: m.Routes,
 
 		root:          prefix,
-		beginHandlers: append([]Wrapper{}, m.beginHandlers...),
+		matchers:      m.matchers[0:],
+		beginHandlers: m.beginHandlers[0:],
 	}
 }
 
@@ -297,9 +357,11 @@ breaking changes and etc. This `Unlink`, which will return the same SubMux, it c
 //
 // mux := NewMux()
 // mux.Use(myLoggerMiddleware)
-// v1 := mux.Of("/v1").Unlink() // v1 will no longer have the "myLoggerMiddleware".
+// v1 := mux.Of("/v1").Unlink() // v1 will no longer have the "myLoggerMiddleware" or any Matchers.
 // v1.HandleFunc("/users", myHandler)
 func (m *Mux) Unlink() SubMux {
+	m.matchers = m.matchers[0:0]
 	m.beginHandlers = m.beginHandlers[0:0]
+
 	return m
 }
