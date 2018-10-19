@@ -23,61 +23,6 @@ import (
 //
 // See `NewMux`.
 type Mux struct {
-	/* Hosts map[string]http.Handler
-
-	:: Design notes, none accepted ::
-
-	[1]
-	mySubdomain := mux.WithHost("mysubdomain")
-	mySubdomain.HandleFunc("/", handleMySubdomainIndex)
-
-	mySubSubdomain := mySubdomain.WithHost("mysubsubdomain")
-	mySubSubdomain.HandleFunc("/", handleSubMySubdomainIndex)
-	[2]
-	mux.HandleHost("should_be_exactly_the_host_and_domain_and_port", anHttpHandler)
-	... mySubdomain := NewMux()
-	... mySubdomain.Handle/HandleFunc(path, handler)
-	... mux.HandleHost("mysubdomain.localhost:8080", mySubdomain)
-	[3]
-	mux.Hosts["should_be_exactly_the_host_and_domain_and_port"] = anHttpHandler
-	... mySubdomain := NewMux()
-	... mySubdomain.Handle/HandleFunc(path, handler)
-	... mux.Hosts["mysubdomain.localhost:8080"] = mySubdomain
-
-	With [2] and [3] we lose the link between the parent mux,
-	i.e middlewares, although these can be shared by `muxie.Pre` very easly, so
-	this is not problem.
-	With [2] and [3] we win simplicity and subdomains are not even coupled to this library,
-	end-developer can use any http.Handler to serve those.
-	Simplest: [3], choose that.
-
-	^ Discarded because on advanced scenarios the end-developer may want to fetch the data
-	at real-time, so we need a way to execute a validator before the host handler execution.
-	Replaced with the `Matcher`, `Mux#Match` and `Mux#MatchHost`.
-
-	:: Usage::
-
-	Hosts is the optional map of hosts to routers.
-	The key is the exactly host line, i.e mysubdomain.mydomain.com:8080
-	including the domain and the port OR an asterix "*" to match any subdomain.
-	The value is any http.Handler, let's say a new muxie.NewMux() which will build
-	the subdomain's API.
-
-	These hosts are not sharing begin handlers registered via `Use`,
-	that is a choice that end-developer's have to take.
-	You can share middlewares between different Mux instances
-	by using the `muxie.Pre` to define the list of handlers that should ran everywhere
-	and add them to each Mux instance, i.e:
-	... mySharingMiddlewares := muxie.Pre(myGlobalRootLogMiddleware, ...)
-	... mux := muxie.NewMux()
-	... mux.Use(mySharingMiddlewares...)
-	...
-	... mySubdomain := muxie.NewMux()
-	... mySubdomain.Use(mySharingMiddlewares...)
-	...
-	... mux.Hosts["mysubdomain.localhost:8080"] = mySubdomain
-	*/
-
 	PathCorrection bool
 	Routes         *Trie
 
@@ -85,7 +30,7 @@ type Mux struct {
 
 	// per mux
 	root          string
-	matchers      []Matcher
+	matchers      []MatcherHandler
 	beginHandlers []Wrapper
 }
 
@@ -103,58 +48,38 @@ func NewMux() *Mux {
 	}
 }
 
-type Matcher interface {
-	http.Handler
-	Match(*http.Request) bool
+// AddMatcher adds a full `MatcherHandler` which is responsible
+// to validate a handler before execute, if handler is executed
+// then the router stops searching for this Mux' routes.
+//
+// The "matcherHandler"'s Handler can be any http.Handler
+// and a new `muxie.NewMux` as well. The new Mux will
+// be not linked to this Mux by-default, if you want to share
+// middlewares then you have to use the `muxie.Pre` to declare
+// the shared middlewares and register them via the `Mux#Use` function.
+func (m *Mux) AddMatcher(matcherHandler MatcherHandler) {
+	m.matchers = append(m.matchers, matcherHandler)
 }
 
-type simpleMatcher struct {
-	matchFunc func(*http.Request) bool
-	handler   http.Handler
+// Match adds a matcher and a request handler for that matcher if passed.
+// If the "matcher" passed then the "handler" will be executed
+// and this Mux' routes will be ignored.
+//
+// Look the `Mux#AddMatcher` for further details.
+func (m *Mux) Match(matcher Matcher, handler http.Handler) {
+	m.AddMatcher(&simpleMatcherHandler{
+		Matcher: matcher,
+		Handler: handler,
+	})
 }
 
-func (m *simpleMatcher) Match(r *http.Request) bool {
-	return m.matchFunc(r)
-}
-
-func (m *simpleMatcher) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	m.handler.ServeHTTP(w, r)
-}
-
-/* TODO THINKING:
-
-mux.If(matcher(request)bool) -> returns a SubMux, or "when":
-mux.When(muxie.Host("mysubdomain.localhost:8080")).Handle(mysubdomainHandler)
-
-muxie.Host -> a func(string) which will implement the matcher func(request)bool
-*/
-
-func (m *Mux) If(matcher func(*http.Request) bool) SubMux {
-	subUnlinkedMux := NewMux()
-	m.matchers = append(m.matchers, &simpleMatcher{matcher, subUnlinkedMux})
-	return subUnlinkedMux
-}
-
-// type Host string
-
-// func (s Host) Match(r *http.Request) bool {
-// 	return r.Host == string(s) || string(s) == WildcardParamStart
-// }
-
-func Host(host string) func(r *http.Request) bool {
-	return func(r *http.Request) bool {
-		return r.Host == host || host == WildcardParamStart
-	}
-}
-
-func (m *Mux) Match(matchFunc func(*http.Request) bool, handler http.Handler) {
-	m.matchers = append(m.matchers, &simpleMatcher{matchFunc, handler})
-}
-
-func (m *Mux) MatchHost(host string, handler http.Handler) {
-	m.Match(func(r *http.Request) bool {
-		return r.Host == host || host == WildcardParamStart
-	}, handler)
+// MatchFunc adds a matcher function and a request handler for that matcher if passed.
+// If the "matcher" passed then the "handler" will be executed
+// and this Mux' routes will be ignored.
+//
+// Look the `Mux#AddMatcher` for further details.
+func (m *Mux) MatchFunc(matcherFunc func(*http.Request) bool, handler http.Handler) {
+	m.Match(MatcherFunc(matcherFunc), handler)
 }
 
 // Use adds middleware that should be called before each mux route's main handler.
@@ -290,7 +215,6 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type SubMux interface {
 	Of(prefix string) SubMux
 	Unlink() SubMux
-	Match(matchFunc func(*http.Request) bool, handler http.Handler)
 	Use(middlewares ...Wrapper)
 	Handle(pattern string, handler http.Handler)
 	HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
