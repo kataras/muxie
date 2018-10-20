@@ -63,6 +63,18 @@ _Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read 
 - __small api:__ with only 3 main methods for HTTP there's not much to learn
 - __compatibility:__ built to be 100% compatible with the `net/http` standard package
 
+## Technical Features
+
+- [x] Closest Wildcard Resolution and Root wildcard (CWR)[*](_examples/3_root_wildcard_and_custom-404/main.go)
+- [x] Parameterized Dynamic Path (named parameters with `:name` and wildcards with `*name`, can play all together for the same path prefix|suffix)[*](_examples/2_parameterized/main.go)
+- [x] Standard handlers chain (`Pre(handlers).For(mainHandler)` for individual routes and `Mux#Use` for router)[*](_examples/6_middleware/main.go)
+- [x] Register handlers by method(s) (`muxie.Methods()`)[*](_examples/7_by_methods/main.go)
+- [x] Register handlers by filters (`Mux#HandleRequest` and `Mux#AddRequestHandler` for  `muxie.Matcher` and `muxie.RequestHandler`)
+- [x] Handle subdomains with ease (`muxie.Host` Matcher)[*](_examples/9_subdomains_and_matchers)
+- [x] Request Processors (`muxie.Bind` and `muxie.Dispatch`)[*](_examples/8_bind_req_send_resp)
+
+Interested? Want to learn more about this library? Check out our tiny [examples](_examples) and the simple [godocs page](https://godoc.org/github.com/kataras/muxie).
+
 ## Installation
 
 The only requirement is the [Go Programming Language](https://golang.org/dl/)
@@ -70,99 +82,6 @@ The only requirement is the [Go Programming Language](https://golang.org/dl/)
 ```sh
 $ go get -u github.com/kataras/muxie
 ```
-
-## Example
-
-```go
-package main
-
-import (
-    "fmt"
-    "net/http"
-
-    "github.com/rs/cors"
-
-    "github.com/kataras/muxie"
-)
-
-func main() {
-    mux := muxie.NewMux()
-    mux.PathCorrection = true
-
-    // _examples/6_middleware
-    mux.Use(cors.Default().Handler)
-
-    mux.HandleFunc("/", indexHandler)
-    // Root wildcards, can be used for site-level custom not founds(404).
-    mux.HandleFunc("/*path", notFoundHandler)
-
-    // Grouping.
-    profile := mux.Of("/profile")
-    profile.HandleFunc("/:name", profileHandler)
-    profile.HandleFunc("/:name/photos", profilePhotosHandler)
-    // Wildcards can be used for prefix-level custom not found handler as well,
-    // order does not matter.
-    profile.HandleFunc("/*path", profileNotFoundHandler)
-
-    // Dynamic paths with named parameters and wildcards or all together!
-    mux.HandleFunc("/uploads/*file", listUploadsHandler)
-
-    mux.HandleFunc("/uploads/:uploader", func(w http.ResponseWriter, r *http.Request) {
-        uploader := muxie.GetParam(w, "uploader")
-        fmt.Fprintf(w, "Hello Uploader: '%s'", uploader)
-    })
-
-    mux.HandleFunc("/uploads/info/*file", func(w http.ResponseWriter, r *http.Request) {
-        file := muxie.GetParam(w, "file")
-        fmt.Fprintf(w, "File info of: '%s'", file)
-    })
-
-    mux.HandleFunc("/uploads/totalsize", func(w http.ResponseWriter, r *http.Request) {
-        fmt.Fprint(w, "Uploads total size is 4048")
-    })
-
-    fmt.Println("Server started at :8080")
-    http.ListenAndServe(":8080", mux)
-}
-
-func notFoundHandler(w http.ResponseWriter, r *http.Request) {
-    requestPath := muxie.GetParam(w, "path")
-    // or r.URL.Path, we are in the root so it doesn't really matter.
-
-    fmt.Fprintf(w, "Global Site Page of: '%s' not found", requestPath)
-}
-
-func profileNotFoundHandler(w http.ResponseWriter, r *http.Request) {
-    requestSubPath := muxie.GetParam(w, "path")
-    // requestSubPath = everyhing else after "http://localhost:8080/profile/..." 
-    // but not /profile/:name or /profile/:name/photos because those will
-    // be handled by the above route handlers we registered previously.
-
-    fmt.Fprintf(w, "Profile Page of: '%s' not found", requestSubPath)
-}
-
-func indexHandler(w http.ResponseWriter, r *http.Request) {
-    w.Header().Set("Content-Type", "text/html;charset=utf8")
-    fmt.Fprintf(w, "This is the <strong>%s</strong>", "index page")
-}
-
-func profileHandler(w http.ResponseWriter, r *http.Request) {
-    name := muxie.GetParam(w, "name")
-    fmt.Fprintf(w, "Profile of: '%s'", name)
-}
-
-func profilePhotosHandler(w http.ResponseWriter, r *http.Request) {
-    name := muxie.GetParam(w, "name")
-    fmt.Fprintf(w, "Photos of: '%s'", name)
-}
-
-func listUploadsHandler(w http.ResponseWriter, r *http.Request) {
-    file := muxie.GetParam(w, "file")
-    fmt.Fprintf(w, "Showing file: '%s'", file)
-}
-
-```
-Want to see more examples and documentation? Check out the [examples](_examples).
 
 ## Philosophy
 
@@ -200,4 +119,5 @@ Yours,<br />
 Gerasimos Maropoulos ([@MakisMaropoulos](https://twitter.com/MakisMaropoulos))
 
 ## License
+
 [MIT](https://tldrlegal.com/license/mit-license)
