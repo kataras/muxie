@@ -237,11 +237,12 @@ type ParamsSetter interface {
 // 4. closest wildcard if not found, if any
 // 5. root wildcard
 func (t *Trie) Search(q string, params ParamsSetter) *Node {
-	if len(q) == 1 && q[0] == pathSepB {
+	end := len(q)
+
+	if end == 0 || (end == 1 && q[0] == pathSepB) {
 		return t.root.getChild(pathSep)
 	}
 
-	end := len(q)
 	n := t.root
 	start := 1
 	i := 1

@@ -3,7 +3,6 @@ package muxie
 import (
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 )
 
@@ -15,8 +14,5 @@ func TestGetParam(t *testing.T) {
 		fmt.Fprintf(w, "Hello %s", name)
 	})
 
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-
-	expect(t, http.MethodGet, srv.URL+"/hello/kataras").bodyEq("Hello kataras")
+	testHandler(t, mux, http.MethodGet, "/hello/kataras").bodyEq("Hello kataras")
 }

@@ -35,44 +35,54 @@ func expectWithBody(t *testing.T, method, url string, body string, headers http.
 }
 
 func testReq(t *testing.T, req *http.Request) *testie {
-	res, err := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	return &testie{t: t, res: res}
+	resp.Request = req
+	return &testie{t: t, resp: resp}
+}
+
+func testHandler(t *testing.T, handler http.Handler, method, url string) *testie {
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(method, url, nil)
+	handler.ServeHTTP(w, req)
+	resp := w.Result()
+	resp.Request = req
+	return &testie{t: t, resp: resp}
 }
 
 type testie struct {
-	t   *testing.T
-	res *http.Response
+	t    *testing.T
+	resp *http.Response
 }
 
 func (te *testie) statusCode(expected int) *testie {
-	if got := te.res.StatusCode; expected != got {
-		te.t.Fatalf("%s: expected status code: %d but got %d", te.res.Request.URL, expected, got)
+	if got := te.resp.StatusCode; expected != got {
+		te.t.Fatalf("%s: expected status code: %d but got %d", te.resp.Request.URL, expected, got)
 	}
 
 	return te
 }
 
 func (te *testie) bodyEq(expected string) *testie {
-	b, err := ioutil.ReadAll(te.res.Body)
-	te.res.Body.Close()
+	b, err := ioutil.ReadAll(te.resp.Body)
+	te.resp.Body.Close()
 	if err != nil {
 		te.t.Fatal(err)
 	}
 
 	if got := string(b); expected != got {
-		te.t.Fatalf("%s: expected to receive '%s' but got '%s'", te.res.Request.URL, expected, got)
+		te.t.Fatalf("%s: expected to receive '%s' but got '%s'", te.resp.Request.URL, expected, got)
 	}
 
 	return te
 }
 
 func (te *testie) headerEq(key, expected string) *testie {
-	if got := te.res.Header.Get(key); expected != got {
-		te.t.Fatalf("%s: expected header value of %s to be: '%s' but got '%s'", te.res.Request.URL, key, expected, got)
+	if got := te.resp.Header.Get(key); expected != got {
+		te.t.Fatalf("%s: expected header value of %s to be: '%s' but got '%s'", te.resp.Request.URL, key, expected, got)
 	}
 
 	return te

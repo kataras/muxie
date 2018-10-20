@@ -29,9 +29,9 @@ type Mux struct {
 	paramsPool *sync.Pool
 
 	// per mux
-	root          string
-	matchers      []MatcherHandler
-	beginHandlers []Wrapper
+	root            string
+	requestHandlers []RequestHandler
+	beginHandlers   []Wrapper
 }
 
 // NewMux returns a new HTTP multiplexer which uses a fast, if not the fastest
@@ -48,38 +48,31 @@ func NewMux() *Mux {
 	}
 }
 
-// AddMatcher adds a full `MatcherHandler` which is responsible
-// to validate a handler before execute, if handler is executed
-// then the router stops searching for this Mux' routes.
+// AddRequestHandler adds a full `RequestHandler` which is responsible
+// to check if a handler should be executed via its `Matcher`,
+// if the handler is executed
+// then the router stops searching for this Mux' routes,
+// RequestHandelrs have priority over the routes and the middlewares.
 //
-// The "matcherHandler"'s Handler can be any http.Handler
+// The "requestHandler"'s Handler can be any http.Handler
 // and a new `muxie.NewMux` as well. The new Mux will
 // be not linked to this Mux by-default, if you want to share
 // middlewares then you have to use the `muxie.Pre` to declare
 // the shared middlewares and register them via the `Mux#Use` function.
-func (m *Mux) AddMatcher(matcherHandler MatcherHandler) {
-	m.matchers = append(m.matchers, matcherHandler)
+func (m *Mux) AddRequestHandler(requestHandler RequestHandler) {
+	m.requestHandlers = append(m.requestHandlers, requestHandler)
 }
 
-// Match adds a matcher and a request handler for that matcher if passed.
+// HandleRequest adds a matcher and a (conditinal) handler to be executed when "matcher" passed.
 // If the "matcher" passed then the "handler" will be executed
 // and this Mux' routes will be ignored.
 //
-// Look the `Mux#AddMatcher` for further details.
-func (m *Mux) Match(matcher Matcher, handler http.Handler) {
-	m.AddMatcher(&simpleMatcherHandler{
+// Look the `Mux#AddRequestHandler` for further details.
+func (m *Mux) HandleRequest(matcher Matcher, handler http.Handler) {
+	m.AddRequestHandler(&simpleRequestHandler{
 		Matcher: matcher,
 		Handler: handler,
 	})
-}
-
-// MatchFunc adds a matcher function and a request handler for that matcher if passed.
-// If the "matcher" passed then the "handler" will be executed
-// and this Mux' routes will be ignored.
-//
-// Look the `Mux#AddMatcher` for further details.
-func (m *Mux) MatchFunc(matcherFunc func(*http.Request) bool, handler http.Handler) {
-	m.Match(MatcherFunc(matcherFunc), handler)
 }
 
 // Use adds middleware that should be called before each mux route's main handler.
@@ -149,9 +142,9 @@ func (m *Mux) HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *
 
 // ServeHTTP exposes and serves the registered routes.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	for _, matcher := range m.matchers {
-		if matcher.Match(r) {
-			matcher.ServeHTTP(w, r)
+	for _, h := range m.requestHandlers {
+		if h.Match(r) {
+			h.ServeHTTP(w, r)
 			return
 		}
 	}
@@ -250,9 +243,9 @@ func (m *Mux) Of(prefix string) SubMux {
 	return &Mux{
 		Routes: m.Routes,
 
-		root:          prefix,
-		matchers:      m.matchers[0:],
-		beginHandlers: m.beginHandlers[0:],
+		root:            prefix,
+		requestHandlers: m.requestHandlers[0:],
+		beginHandlers:   m.beginHandlers[0:],
 	}
 }
 
@@ -284,7 +277,7 @@ breaking changes and etc. This `Unlink`, which will return the same SubMux, it c
 // v1 := mux.Of("/v1").Unlink() // v1 will no longer have the "myLoggerMiddleware" or any Matchers.
 // v1.HandleFunc("/users", myHandler)
 func (m *Mux) Unlink() SubMux {
-	m.matchers = m.matchers[0:0]
+	m.requestHandlers = m.requestHandlers[0:0]
 	m.beginHandlers = m.beginHandlers[0:0]
 
 	return m

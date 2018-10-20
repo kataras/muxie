@@ -6,10 +6,23 @@ import (
 )
 
 type (
+	// RequestHandler is the matcher and handler link interface.
+	// It is used inside the `Mux` to handle requests based on end-developer's custom logic.
+	// If a "Matcher" passed then the "Handler" is executing and the rest of the Mux' routes will be ignored.
+	RequestHandler interface {
+		http.Handler
+		Matcher
+	}
+
+	simpleRequestHandler struct {
+		http.Handler
+		Matcher
+	}
+
 	// Matcher is the interface that all Matchers should be implemented
-	// in order to be registered into the Mux via the `Mux#AddMatcher/Match/MatchFunc` functions.
+	// in order to be registered into the Mux via the `Mux#AddRequestHandler/Match/MatchFunc` functions.
 	//
-	// Look the `Mux#AddMatcher` for more.
+	// Look the `Mux#AddRequestHandler` for more.
 	Matcher interface {
 		Match(*http.Request) bool
 	}
@@ -36,18 +49,3 @@ func (h Host) Match(r *http.Request) bool {
 	s := string(h)
 	return r.Host == s || (s[0] == '.' && strings.HasSuffix(r.Host, s)) || s == WildcardParamStart
 }
-
-type (
-	// MatcherHandler is the matcher and handler link interface.
-	// It is used inside the `Mux` to handle requests based on end-developer's custom logic.
-	// If a "Matcher" passed then the "Handler" is executing and the rest of the Mux' routes will be ignored.
-	MatcherHandler interface {
-		http.Handler
-		Matcher
-	}
-
-	simpleMatcherHandler struct {
-		http.Handler
-		Matcher
-	}
-)

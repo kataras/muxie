@@ -12,6 +12,10 @@ Installation
 The only requirement is the Go Programming Language
 
     $ go get -u github.com/kataras/muxie
+
+Examples
+
+   https://github.com/kataras/muxie/tree/master/_examples
 */
 
 package muxie

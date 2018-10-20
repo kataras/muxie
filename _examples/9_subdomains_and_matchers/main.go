@@ -16,32 +16,35 @@ func main() {
 	mySubdomain.HandleFunc("/", handleMySubdomainIndex)
 	mySubdomain.HandleFunc("/about", aboutHandler)
 
-	mux.Match(muxie.Host("mysubdomain.localhost:8080"), mySubdomain)
+	mux.HandleRequest(muxie.Host("mysubdomain.localhost:8080"), mySubdomain)
 	//
 
 	// mysubsubdomain.mysubdomain
+	// This is a fully featured muxie Mux,
+	// it could have its own request handlers as well but this is not part of the exercise.
 	mySubSubdomain := muxie.NewMux()
+
 	mySubSubdomain.HandleFunc("/", handleMySubSubdomainIndex)
 	mySubSubdomain.HandleFunc("/about", aboutHandler)
 
-	mux.Match(muxie.Host("mysubsubdomain.mysubdomain.localhost:8080"), mySubSubdomain)
+	mux.HandleRequest(muxie.Host("mysubsubdomain.mysubdomain.localhost:8080"), mySubSubdomain)
 	//
 
 	// any other subdomain
 	myWildcardSubdomain := muxie.NewMux()
 	myWildcardSubdomain.HandleFunc("/", handleMyWildcardSubdomainIndex)
 	// Catch any other host that ends with .localhost:8080.
-	mux.Match(muxie.Host(".localhost:8080"), myWildcardSubdomain)
+	mux.HandleRequest(muxie.Host(".localhost:8080"), myWildcardSubdomain)
 	/*
 		Or add a custom match func that validates if the router
 		should proceed with this subdomain handler:
 		This one is extremely useful for apps that may need dynamic subdomains based on a database,
 		usernames for example.
-		mux.MatchFunc(func(r *http.Request) bool{
+		mux.HandleRequest(muxie.MatcherFunc(func(r *http.Request) bool{
 			return userRepo.Exists(...use of http.Request)
-		}, myWildcardSubdomain)
+		}), myWildcardSubdomain)
 		Or
-		mux.AddMatcher(_value_of_a_struct_which_completes_the_muxie.MatcherHandler)
+		mux.AddRequestHandler(_value_of_a_struct_which_completes_the_muxie.RequestHandler with Match and ServeHTTP funcs)
 	*/
 
 	// Chrome-based browsers will automatically work but to test with
@@ -53,7 +56,7 @@ func main() {
 	// You may run your own virtual domain if you change the listening addr ":8080"
 	// to something like "mydomain.com:80".
 	//
-	// Read more at godocs of `Mux#AddMatcher`.
+	// Read more at godocs of `Mux#AddRequestHandler`.
 	fmt.Println(`Server started at http://localhost:8080
 Open your browser and navigate through:
 http://mysubdomain.localhost:8080
