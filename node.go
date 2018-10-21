@@ -52,7 +52,7 @@ func (n *Node) addChild(s string, child *Node) {
 
 func (n *Node) getChild(s string) *Node {
 	if n.children == nil {
-		n.children = make(map[string]*Node)
+		return nil
 	}
 
 	return n.children[s]

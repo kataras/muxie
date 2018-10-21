@@ -26,6 +26,8 @@ type Trie struct {
 	// if true then it will handle any path if not other parent wildcard exists,
 	// so even 404 (on http services) is up to it, see Trie#Insert.
 	hasRootWildcard bool
+
+	hasRootSlash bool
 }
 
 // NewTrie returns a new, empty Trie.
@@ -120,6 +122,10 @@ func (t *Trie) insert(key, tag string, optionalData interface{}, handler http.Ha
 	input := slowPathSplit(key)
 
 	n := t.root
+	if key == pathSep {
+		t.hasRootSlash = true
+	}
+
 	var paramKeys []string
 
 	for _, s := range input {
@@ -241,12 +247,14 @@ func (t *Trie) Search(q string, params ParamsSetter) *Node {
 
 	if end == 0 || (end == 1 && q[0] == pathSepB) {
 		// fixes only root wildcard but no / registered at.
-		if n := t.root.getChild(pathSep); n != nil {
-			return n
+		if t.hasRootSlash {
+			return t.root.getChild(pathSep)
+		} else if t.hasRootWildcard {
+			// no need to going through setting parameters, this one has not but it is wildcard.
+			return t.root.getChild(WildcardParamStart)
 		}
 
-		q = pathSep
-		//
+		return nil
 	}
 
 	n := t.root
