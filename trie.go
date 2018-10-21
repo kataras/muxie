@@ -240,7 +240,13 @@ func (t *Trie) Search(q string, params ParamsSetter) *Node {
 	end := len(q)
 
 	if end == 0 || (end == 1 && q[0] == pathSepB) {
-		return t.root.getChild(pathSep)
+		// fixes only root wildcard but no / registered at.
+		if n := t.root.getChild(pathSep); n != nil {
+			return n
+		}
+
+		q = pathSep
+		//
 	}
 
 	n := t.root
