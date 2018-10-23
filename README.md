@@ -54,6 +54,14 @@
 
 _Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read more details.
 
+### Third-party source benchmarks
+
+[![](https://github.com/kataras/iris/raw/master/_benchmarks/benchmarks_third_party_source_snapshot_go_23_october_2018.png)](https://github.com/the-benchmarker/web-frameworks#full-table)
+
+As shown in the benchmarks (from a [third-party source](https://github.com/the-benchmarker)), Muxie is much faster than its alternatives out there with amazing performance, fastest net/http router ever created so far. View the results and read further details [here](https://github.com/the-benchmarker/web-frameworks/tree/934fdf16e13a1a922ee88e873ae76f28f52c189f#full-table).
+
+_Last updated on October 23, 2018._
+
 ## Features
 
 - __trie based:__ [performance](_benchmarks/README.md) and useness are first class citizens, Muxie is based on the prefix tree data structure, designed from scratch and built for HTTP, and it is among the fastest outhere, if not the fastest one
