@@ -98,5 +98,7 @@ func (m *MethodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Allow#Examples
 	w.Header().Set("Allow", m.methodsAllowedStr)
-	http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+	if r.Method != http.MethodOptions {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+	}
 }

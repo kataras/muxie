@@ -48,4 +48,6 @@ func TestMethodHandler(t *testing.T) {
 		bodyEq("DELETE: remove user with ID: 42\n")
 	expect(t, http.MethodPut, srv.URL+"/user/42").statusCode(http.StatusMethodNotAllowed).
 		bodyEq("Method Not Allowed\n").headerEq("Allow", "OPTIONS, GET, POST, DELETE")
+	expect(t, http.MethodOptions, srv.URL+"/user/42").statusCode(http.StatusOK).
+		headerEq("Allow", "OPTIONS, GET, POST, DELETE")
 }
