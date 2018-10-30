@@ -70,7 +70,7 @@ func (m *MethodHandler) Handle(method string, handler http.Handler) *MethodHandl
 	method = strings.ToUpper(strings.TrimSpace(method))
 
 	if m.methodsAllowedStr == "" {
-		m.methodsAllowedStr = method
+		m.methodsAllowedStr = "OPTIONS, " + method
 	} else {
 		m.methodsAllowedStr += ", " + method
 	}
