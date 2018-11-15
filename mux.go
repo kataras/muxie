@@ -211,6 +211,7 @@ type SubMux interface {
 	Use(middlewares ...Wrapper)
 	Handle(pattern string, handler http.Handler)
 	HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
+	AbsPath() string
 }
 
 // Of returns a new Mux which its Handle and HandleFunc will register the path based on given "prefix", i.e:
@@ -247,6 +248,14 @@ func (m *Mux) Of(prefix string) SubMux {
 		requestHandlers: m.requestHandlers[0:],
 		beginHandlers:   m.beginHandlers[0:],
 	}
+}
+
+// AbsPath returns the absolute path of the router for this Mux group.
+func (m *Mux) AbsPath() string {
+	if m.root == "" {
+		return "/"
+	}
+	return m.root
 }
 
 /* Notes:
