@@ -11,31 +11,31 @@ import (
 // then the `GetParam("name")` will return the value of "kataras".
 // If not associated value with that key is found then it will return an empty string.
 //
-// The function will do its job only if the given "w" http.ResponseWriter interface is an `paramsWriter`.
+// The function will do its job only if the given "w" http.ResponseWriter interface is an `ResponseWriter`.
 func GetParam(w http.ResponseWriter, key string) string {
-	if store, ok := w.(*paramsWriter); ok {
+	if store, ok := w.(ResponseWriter); ok {
 		return store.Get(key)
 	}
 
 	return ""
 }
 
-// GetParams returns all the available parameters based on the "w" http.ResponseWriter which should be a *paramsWriter.
+// GetParams returns all the available parameters based on the "w" http.ResponseWriter which should be a ResponseWriter.
 //
-// The function will do its job only if the given "w" http.ResponseWriter interface is an `paramsWriter`.
+// The function will do its job only if the given "w" http.ResponseWriter interface is an `ResponseWriter`.
 func GetParams(w http.ResponseWriter) []ParamEntry {
-	if store, ok := w.(*paramsWriter); ok {
-		return store.params
+	if store, ok := w.(ResponseWriter); ok {
+		return store.GetAll()
 	}
 
 	return nil
 }
 
-// SetParam sets manually a parameter to the "w" http.ResponseWriter which should be a *paramsWriter.
+// SetParam sets manually a parameter to the "w" http.ResponseWriter which should be a ResponseWriter.
 // This is not commonly used by the end-developers,
 // unless sharing values(string messages only) between handlers is absolutely necessary.
 func SetParam(w http.ResponseWriter, key, value string) bool {
-	if store, ok := w.(*paramsWriter); ok {
+	if store, ok := w.(ResponseWriter); ok {
 		store.Set(key, value)
 		return true
 	}
@@ -43,16 +43,28 @@ func SetParam(w http.ResponseWriter, key, value string) bool {
 	return false
 }
 
-type paramsWriter struct {
-	http.ResponseWriter
-	params []ParamEntry
-}
-
 // ParamEntry holds the Key and the Value of a named path parameter.
 type ParamEntry struct {
 	Key   string
 	Value string
 }
+
+// ResponseWriter is the muxie's specific ResponseWriter to hold the path parameters.
+// Usage: use this to cast a handler's `http.ResponseWriter` and pass it as an embedded parameter to custom response writer
+// that will be passed to the next handler in the chain.
+type ResponseWriter interface {
+	http.ResponseWriter
+	ParamsSetter
+	Get(string) string
+	GetAll() []ParamEntry
+}
+
+type paramsWriter struct {
+	http.ResponseWriter
+	params []ParamEntry
+}
+
+var _ ResponseWriter = (*paramsWriter)(nil)
 
 // Set implements the `ParamsSetter` which `Trie#Search` needs to store the parameters, if any.
 // These are decoupled because end-developers may want to use the trie to design a new Mux of their own
@@ -82,6 +94,11 @@ func (pw *paramsWriter) Get(key string) string {
 	}
 
 	return ""
+}
+
+// GetAll returns all the path parameters keys-values.
+func (pw *paramsWriter) GetAll() []ParamEntry {
+	return pw.params
 }
 
 func (pw *paramsWriter) reset(w http.ResponseWriter) {
