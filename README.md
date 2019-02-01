@@ -25,7 +25,7 @@
   </a>
   <!-- Build Status -->
   <a href="https://travis-ci.org/kataras/muxie">
-    <img src="https://img.shields.io/travis/kataras/muxie/master.svg?style=flat-square"
+    <img src="https://img.shields.io/travis/kataras/muxie/v1.svg?style=flat-square"
       alt="Build Status" />
   </a>
   <!-- Report Card -->
@@ -34,7 +34,7 @@
       alt="Report Card" />
   </a>
   <!-- Examples -->
-  <a href="https://github.com/kataras/muxie/tree/master/_examples">
+  <a href="https://github.com/kataras/muxie/tree/v1/_examples">
     <img src="https://img.shields.io/badge/learn%20by-examples-yellow.svg?style=flat-square"
       alt="Example" />
   </a>
