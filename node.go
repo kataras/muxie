@@ -34,27 +34,16 @@ type Node struct {
 // NewNode returns a new, empty, Node.
 func NewNode() *Node {
 	n := new(Node)
+	n.children = make(map[string]*Node)
 	return n
 }
 
 func (n *Node) addChild(s string, child *Node) {
-	if n.children == nil {
-		n.children = make(map[string]*Node)
-	}
-
-	if _, exists := n.children[s]; exists {
-		return
-	}
-
 	child.parent = n
 	n.children[s] = child
 }
 
 func (n *Node) getChild(s string) *Node {
-	if n.children == nil {
-		return nil
-	}
-
 	return n.children[s]
 }
 
@@ -89,18 +78,13 @@ var DefaultKeysSorter = func(list []string) func(i, j int) bool {
 // Keys returns this node's key (if it's a final path segment)
 // and its children's node's key. The "sorter" can be optionally used to sort the result.
 func (n *Node) Keys(sorter NodeKeysSorter) (list []string) {
-	if n == nil {
-		return
-	}
 
 	if n.end {
 		list = append(list, n.key)
 	}
 
-	if n.children != nil {
-		for _, child := range n.children {
-			list = append(list, child.Keys(sorter)...)
-		}
+	for _, child := range n.children {
+		list = append(list, child.Keys(sorter)...)
 	}
 
 	if sorter != nil {
