@@ -1,6 +1,9 @@
 package muxie
 
 import (
+	"bufio"
+	"errors"
+	"net"
 	"net/http"
 )
 
@@ -57,11 +60,39 @@ type ResponseWriter interface {
 	ParamsSetter
 	Get(string) string
 	GetAll() []ParamEntry
+	// Status returns the status code of the response or 0 if the response has
+	// not been written
+	Status() int
+	// Written returns whether or not the ResponseWriter has been written.
+	Written() bool
+	// Size returns the size of the response body.
+	Size() int
+	// Before allows for a function to be called before the ResponseWriter has been written to. This is
+	// useful for setting headers or any other operations that must happen before a response has been written.
+	Before(func(ResponseWriter))
 }
+
+type beforeFunc func(ResponseWriter)
 
 type paramsWriter struct {
 	http.ResponseWriter
-	params []ParamEntry
+	params      []ParamEntry
+	status      int
+	size        int
+	beforeFuncs []beforeFunc
+}
+
+// NewResponseWriter creates a ResponseWriter that wraps an http.ResponseWriter
+func NewResponseWriter(pw http.ResponseWriter) ResponseWriter {
+	npw := &paramsWriter{
+		ResponseWriter: pw,
+	}
+
+	if _, ok := pw.(http.CloseNotifier); ok {
+		return &responseWriterCloseNotifer{npw}
+	}
+
+	return npw
 }
 
 var _ ResponseWriter = (*paramsWriter)(nil)
@@ -84,6 +115,52 @@ func (pw *paramsWriter) Set(key, value string) {
 	})
 }
 
+func (pw *paramsWriter) WriteHeader(s int) {
+	pw.status = s
+	pw.ResponseWriter.WriteHeader(s)
+}
+
+func (pw *paramsWriter) Write(b []byte) (int, error) {
+	if !pw.Written() {
+		// The status will be StatusOK if WriteHeader has not been called yet
+		pw.WriteHeader(http.StatusOK)
+	}
+	size, err := pw.ResponseWriter.Write(b)
+	pw.size += size
+	return size, err
+}
+
+func (pw *paramsWriter) Flush() {
+	flusher, ok := pw.ResponseWriter.(http.Flusher)
+	if ok {
+		if !pw.Written() {
+			// The status will be StatusOK if WriteHeader has not been called yet
+			pw.WriteHeader(http.StatusOK)
+		}
+		flusher.Flush()
+	}
+}
+
+func (pw *paramsWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := pw.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("the ResponseWriter doesn't support the Hijacker interface")
+	}
+	return hijacker.Hijack()
+}
+
+func (pw *paramsWriter) Status() int {
+	return pw.status
+}
+
+func (pw *paramsWriter) Size() int {
+	return pw.size
+}
+
+func (pw *paramsWriter) Written() bool {
+	return pw.status != 0
+}
+
 // Get returns the value of the associated parameter based on its key/name.
 func (pw *paramsWriter) Get(key string) string {
 	n := len(pw.params)
@@ -96,6 +173,16 @@ func (pw *paramsWriter) Get(key string) string {
 	return ""
 }
 
+func (pw *paramsWriter) Before(before func(ResponseWriter)) {
+	pw.beforeFuncs = append(pw.beforeFuncs, before)
+}
+
+func (pw *paramsWriter) callBefore() {
+	for i := len(pw.beforeFuncs) - 1; i >= 0; i-- {
+		pw.beforeFuncs[i](pw)
+	}
+}
+
 // GetAll returns all the path parameters keys-values.
 func (pw *paramsWriter) GetAll() []ParamEntry {
 	return pw.params
@@ -104,4 +191,12 @@ func (pw *paramsWriter) GetAll() []ParamEntry {
 func (pw *paramsWriter) reset(w http.ResponseWriter) {
 	pw.ResponseWriter = w
 	pw.params = pw.params[0:0]
+}
+
+type responseWriterCloseNotifer struct {
+	*paramsWriter
+}
+
+func (pw *responseWriterCloseNotifer) CloseNotify() <-chan bool {
+	return pw.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
