@@ -140,6 +140,36 @@ func (m *Mux) HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *
 	m.Handle(pattern, http.HandlerFunc(handlerFunc))
 }
 
+// Get registers a route handler function for a path pattern for a GET Request
+func (m *Mux) Get(pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {
+	m.Handle(pattern, Methods().HandleFunc(http.MethodGet, handlerFunc))
+}
+
+// Post registers a route handler function for a path pattern for a POST Request
+func (m *Mux) Post(pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {
+	m.Handle(pattern, Methods().HandleFunc(http.MethodPost, handlerFunc))
+}
+
+// Put registers a route handler function for a path pattern with a GET Request
+func (m *Mux) Put(pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {
+	m.Handle(pattern, Methods().HandleFunc(http.MethodPut, handlerFunc))
+}
+
+// Delete registers a route handler function for a path pattern with a DELETE Request
+func (m *Mux) Delete(pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {
+	m.Handle(pattern, Methods().HandleFunc(http.MethodDelete, handlerFunc))
+}
+
+// Purge registers a route handler function for a path pattern with a PURGE Request
+func (m *Mux) Purge(pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {
+	m.Handle(pattern, Methods().HandleFunc(http.MethodPurge, handlerFunc))
+}
+
+// Purge registers a route handler function for a path pattern with a OPTIONS Request
+func (m *Mux) Options(pattern string, handlerFunc func(http.ResponseWriter, *http.Request)) {
+	m.Handle(pattern, Methods().HandleFunc(http.MethodOptions, handlerFunc))
+}
+
 // ServeHTTP exposes and serves the registered routes.
 func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	for _, h := range m.requestHandlers {
@@ -212,6 +242,12 @@ type SubMux interface {
 	Handle(pattern string, handler http.Handler)
 	HandleFunc(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
 	AbsPath() string
+	Get(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
+	Post(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
+	Put(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
+	Delete(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
+	Purge(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
+	Options(pattern string, handlerFunc func(http.ResponseWriter, *http.Request))
 }
 
 // Of returns a new Mux which its Handle and HandleFunc will register the path based on given "prefix", i.e:
