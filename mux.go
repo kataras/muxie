@@ -1,8 +1,6 @@
 package muxie
 
 import (
-	"html"
-	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -103,8 +101,8 @@ type (
 // that can be passed via the `Handle` function.
 func (w Wrappers) For(main http.Handler) http.Handler {
 	if len(w) > 0 {
-		for i, lidx := 0, len(w)-1; i <= lidx; i++ {
-			main = w[lidx-i](main)
+		for i := len(w)-1; i >= 0; i-- {
+			main = w[i](main)
 		}
 	}
 
@@ -170,12 +168,6 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			http.Redirect(w, r, url, http.StatusMovedPermanently)
 
-			// RFC2616 recommends that a short note "SHOULD" be included in the
-			// response because older user agents may not understand 301/307.
-			// Shouldn't send the response for POST or HEAD; that leaves GET.
-			if method == http.MethodGet {
-				io.WriteString(w, "<a href=\""+html.EscapeString(url)+"\">Moved Permanently</a>.\n")
-			}
 			return
 		}
 	}
