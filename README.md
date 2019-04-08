@@ -7,7 +7,7 @@
   <strong>Fast trie implementation designed from scratch specifically for HTTP</strong>
 </div>
 <div align="center">
-  A <code>small and light</code> router for creating sturdy backend <a href="https://golang.org" alt="Go Programming Language">Go</a> applications
+  A <code>small and light</code> router for creating sturdy backend <a href="https://golang.org" alt="Go Programming Language">Go</a> applications. Production-level tested, muxie's capabilities live inside the well-tested <a href="https://iris-go.com">Iris </a> web framework.
 </div>
 
 <br />
@@ -53,14 +53,6 @@
 [![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo, vestigo and chi](_benchmarks/chart-17-oct-2018.png)](_benchmarks)
 
 _Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read more details.
-
-### Third-party source benchmarks
-
-[![](https://github.com/kataras/iris/raw/master/_benchmarks/benchmarks_third_party_source_snapshot_go_23_october_2018.png)](https://github.com/the-benchmarker/web-frameworks#full-table)
-
-As shown in the benchmarks (from a [third-party source](https://github.com/the-benchmarker)), Muxie is much faster than its alternatives out there with amazing performance, fastest net/http router ever created so far. View the results and read further details [here](https://github.com/the-benchmarker/web-frameworks/tree/934fdf16e13a1a922ee88e873ae76f28f52c189f#full-table).
-
-_Last updated on October 23, 2018._
 
 ## Features
 
