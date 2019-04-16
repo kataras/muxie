@@ -51,6 +51,7 @@
 </div>
 
 [![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo, vestigo and chi](_benchmarks/chart-17-oct-2018.png)](_benchmarks)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkataras%2Fmuxie.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkataras%2Fmuxie?ref=badge_shield)
 
 _Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read more details.
 
@@ -121,3 +122,5 @@ Gerasimos Maropoulos ([@MakisMaropoulos](https://twitter.com/MakisMaropoulos))
 ## License
 
 [MIT](https://tldrlegal.com/license/mit-license)
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkataras%2Fmuxie.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkataras%2Fmuxie?ref=badge_large)
