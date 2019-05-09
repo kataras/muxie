@@ -66,7 +66,7 @@ _Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read 
 
 ## Technical Features
 
-- [x] Closest Wildcard Resolution and Root wildcard (CWR)[*](_examples/3_root_wildcard_and_custom-404/main.go)
+- [x] Closest Wildcard Resolution and Root wildcard (CWR)[*](_examples/3_root_wildcard_and_custom_404/main.go)
 - [x] Parameterized Dynamic Path (named parameters with `:name` and wildcards with `*name`, can play all together for the same path prefix|suffix)[*](_examples/2_parameterized/main.go)
 - [x] Standard handlers chain (`Pre(handlers).For(mainHandler)` for individual routes and `Mux#Use` for router)[*](_examples/6_middleware/main.go)
 - [x] Register handlers by method(s) (`muxie.Methods()`)[*](_examples/7_by_methods/main.go)
