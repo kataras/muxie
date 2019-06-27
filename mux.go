@@ -1,8 +1,6 @@
 package muxie
 
 import (
-	"html"
-	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -63,7 +61,7 @@ func (m *Mux) AddRequestHandler(requestHandler RequestHandler) {
 	m.requestHandlers = append(m.requestHandlers, requestHandler)
 }
 
-// HandleRequest adds a matcher and a (conditinal) handler to be executed when "matcher" passed.
+// HandleRequest adds a matcher and a (conditional) handler to be executed when "matcher" passed.
 // If the "matcher" passed then the "handler" will be executed
 // and this Mux' routes will be ignored.
 //
@@ -168,14 +166,8 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 				return
 			}
-			http.Redirect(w, r, url, http.StatusMovedPermanently)
 
-			// RFC2616 recommends that a short note "SHOULD" be included in the
-			// response because older user agents may not understand 301/307.
-			// Shouldn't send the response for POST or HEAD; that leaves GET.
-			if method == http.MethodGet {
-				io.WriteString(w, "<a href=\""+html.EscapeString(url)+"\">Moved Permanently</a>.\n")
-			}
+			http.Redirect(w, r, url, http.StatusMovedPermanently)
 			return
 		}
 	}
