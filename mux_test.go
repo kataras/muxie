@@ -6,16 +6,49 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 )
 
-func expect(t *testing.T, method, url string) *testie {
+func expect(t *testing.T, method, url string, testieOptions ...func(*http.Request)) *testie {
 	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	for _, opt := range testieOptions {
+		opt(req)
+	}
+
 	return testReq(t, req)
+}
+
+func withHeader(key string, value string) func(*http.Request) {
+	return func(r *http.Request) {
+		r.Header.Add(key, value)
+	}
+}
+
+func withURLParam(key string, value string) func(*http.Request) {
+	return func(r *http.Request) {
+		r.URL.Query().Add(key, value)
+	}
+}
+
+func withFormField(key string, value string) func(*http.Request) {
+	return func(r *http.Request) {
+		if r.Form == nil {
+			r.Form = make(url.Values)
+		}
+		r.Form.Add(key, value)
+
+		enc := strings.NewReader(r.Form.Encode())
+		r.Body = ioutil.NopCloser(enc)
+		r.ContentLength = int64(enc.Len())
+
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	}
 }
 
 func expectWithBody(t *testing.T, method, url string, body string, headers http.Header) *testie {
