@@ -5,13 +5,13 @@ Source code and other details for the project are available at GitHub:
 
 Current Version
 
-1.0.7
+1.0.8
 
 Installation
 
 The only requirement is the Go Programming Language
 
-    $ go get -u github.com/kataras/muxie
+    $ go get github.com/kataras/muxie
 
 Examples
 

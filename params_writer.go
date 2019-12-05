@@ -105,3 +105,25 @@ func (pw *paramsWriter) reset(w http.ResponseWriter) {
 	pw.ResponseWriter = w
 	pw.params = pw.params[0:0]
 }
+
+// Flusher indicates if `Flush` is supported by the client.
+//
+// The default HTTP/1.x and HTTP/2 ResponseWriter implementations
+// support Flusher, but ResponseWriter wrappers may not. Handlers
+// should always test for this ability at runtime.
+//
+// Note that even for ResponseWriters that support Flush,
+// if the client is connected through an HTTP proxy,
+// the buffered data may not reach the client until the response
+// completes.
+func (pw *paramsWriter) Flusher() (http.Flusher, bool) {
+	flusher, canFlush := pw.ResponseWriter.(http.Flusher)
+	return flusher, canFlush
+}
+
+// Flush sends any buffered data to the client.
+func (pw *paramsWriter) Flush() {
+	if flusher, ok := pw.Flusher(); ok {
+		flusher.Flush()
+	}
+}
