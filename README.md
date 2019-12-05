@@ -7,7 +7,7 @@
   <strong>Fast trie implementation designed from scratch specifically for HTTP</strong>
 </div>
 <div align="center">
-  A <code>small and light</code> router for creating sturdy backend <a href="https://golang.org" alt="Go Programming Language">Go</a> applications
+  A <code>small and light</code> router for creating sturdy backend <a href="https://golang.org" alt="Go Programming Language">Go</a> applications. Production-level tested, muxie's capabilities live inside the well-tested <a href="https://iris-go.com">Iris </a> web framework.
 </div>
 
 <br />
@@ -15,7 +15,7 @@
 <div align="center">
   <!-- Release -->
   <a href="https://github.com/kataras/muxie/releases">
-    <img src="https://img.shields.io/badge/release%20-v1.0.7-0077b3.svg?style=flat-squaree"
+    <img src="https://img.shields.io/badge/release%20-v1.0.8-0077b3.svg?style=flat-squaree"
       alt="Release/stability" />
   </a>
   <!-- Godocs -->
@@ -51,16 +51,9 @@
 </div>
 
 [![Benchmark chart between muxie, httprouter, gin, gorilla mux, echo, vestigo and chi](_benchmarks/chart-17-oct-2018.png)](_benchmarks)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkataras%2Fmuxie.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkataras%2Fmuxie?ref=badge_shield)
 
 _Last updated on October 17, 2018._ Click [here](_benchmarks/README.md) to read more details.
-
-### Third-party source benchmarks
-
-[![](https://github.com/kataras/iris/raw/master/_benchmarks/benchmarks_third_party_source_snapshot_go_23_october_2018.png)](https://github.com/the-benchmarker/web-frameworks#full-table)
-
-As shown in the benchmarks (from a [third-party source](https://github.com/the-benchmarker)), Muxie is much faster than its alternatives out there with amazing performance, fastest net/http router ever created so far. View the results and read further details [here](https://github.com/the-benchmarker/web-frameworks/tree/934fdf16e13a1a922ee88e873ae76f28f52c189f#full-table).
-
-_Last updated on October 23, 2018._
 
 ## Features
 
@@ -73,7 +66,7 @@ _Last updated on October 23, 2018._
 
 ## Technical Features
 
-- [x] Closest Wildcard Resolution and Root wildcard (CWR)[*](_examples/3_root_wildcard_and_custom-404/main.go)
+- [x] Closest Wildcard Resolution and Root wildcard (CWR)[*](_examples/3_root_wildcard_and_custom_404/main.go)
 - [x] Parameterized Dynamic Path (named parameters with `:name` and wildcards with `*name`, can play all together for the same path prefix|suffix)[*](_examples/2_parameterized/main.go)
 - [x] Standard handlers chain (`Pre(handlers).For(mainHandler)` for individual routes and `Mux#Use` for router)[*](_examples/6_middleware/main.go)
 - [x] Register handlers by method(s) (`muxie.Methods()`)[*](_examples/7_by_methods/main.go)
@@ -129,3 +122,5 @@ Gerasimos Maropoulos ([@MakisMaropoulos](https://twitter.com/MakisMaropoulos))
 ## License
 
 [MIT](https://tldrlegal.com/license/mit-license)
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fkataras%2Fmuxie.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fkataras%2Fmuxie?ref=badge_large)
