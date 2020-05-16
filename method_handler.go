@@ -29,11 +29,17 @@ func Methods() *MethodHandler {
 	// 3. mux.Handle("/user/:id", muxie.Method("GET", getUserHandler).Method("POST", saveUserHandler))
 	//
 	// 4. mux.Handle("/user/:id", muxie.Methods().
-	// 	      Handle("GET", getHandler).
-	// 	  HandleFunc("POST", postHandler))
+	//      Handle("GET", getHandler).
+	//      HandleFunc("POST", postHandler))
 	//
 	return &MethodHandler{handlers: make(map[string]http.Handler)}
 }
+
+// NoContentHandler defaults to a handler which just sends 204 status.
+// See `MethodHandler.NoContent` method.
+var NoContentHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+})
 
 // MethodHandler implements the `http.Handler` which can be used on `Mux#Handle/HandleFunc`
 // to declare handlers responsible for specific HTTP method(s).
@@ -43,6 +49,12 @@ type MethodHandler struct {
 	// origin *Mux
 
 	handlers map[string]http.Handler // method:handler
+	// Handle/HandleFunc can accept more than one methods per handler separated by comma or space,
+	// however in order to not repeat ourselves for every handler:
+	// extra methods will be not registered to a handler but they can register
+	// the route so it can be reachable, it is binded to a handler which just sends status no content,
+	// can be used for OPTIONS on cors.
+	noContentMethods []string
 
 	methodsAllowedStr string
 }
@@ -67,7 +79,7 @@ func (m *MethodHandler) Handle(method string, handler http.Handler) *MethodHandl
 		return m
 	}
 
-	method = strings.ToUpper(strings.TrimSpace(method))
+	method = normalizeMethod(method)
 
 	if m.methodsAllowedStr == "" {
 		m.methodsAllowedStr = method
@@ -76,6 +88,18 @@ func (m *MethodHandler) Handle(method string, handler http.Handler) *MethodHandl
 	}
 
 	m.handlers[method] = handler
+
+	return m
+}
+
+// NoContent registers a handler to a method
+// which sends 204 (no status content) to the client.
+//
+// Example: _examples/11_cors for more.
+func (m *MethodHandler) NoContent(methods ...string) *MethodHandler {
+	for _, method := range methods {
+		m.handlers[normalizeMethod(method)] = NoContentHandler
+	}
 
 	return m
 }
@@ -99,4 +123,8 @@ func (m *MethodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Allow#Examples
 	w.Header().Set("Allow", m.methodsAllowedStr)
 	http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+}
+
+func normalizeMethod(method string) string {
+	return strings.ToUpper(strings.TrimSpace(method))
 }
