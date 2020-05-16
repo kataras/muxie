@@ -15,7 +15,7 @@
 <div align="center">
   <!-- Release -->
   <a href="https://github.com/kataras/muxie/releases">
-    <img src="https://img.shields.io/badge/release%20-v1.0.8-0077b3.svg?style=flat-squaree"
+    <img src="https://img.shields.io/badge/release%20-v1.0.9-0077b3.svg?style=flat-squaree"
       alt="Release/stability" />
   </a>
   <!-- Godocs -->
@@ -84,7 +84,7 @@ The only requirement is the [Go Programming Language](https://golang.org/dl/)
 $ go get -u github.com/kataras/muxie
 ```
 
-## Philosophy
+<!-- ## Philosophy
 
 I believe that providing the right tools for the right job represents my best self
 and I really enjoy writing small libraries and even frameworks that can be used and learnt by thousands like me.
@@ -117,7 +117,7 @@ For the hesitants: There is a [public repository](https://github.com/kataras/tri
 And... never forget to put some fun in your life ❤︎
 
 Yours,<br />
-Gerasimos Maropoulos ([@MakisMaropoulos](https://twitter.com/MakisMaropoulos))
+Gerasimos Maropoulos ([@MakisMaropoulos](https://twitter.com/MakisMaropoulos)) -->
 
 ## License
 

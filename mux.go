@@ -21,8 +21,14 @@ import (
 //
 // See `NewMux`.
 type Mux struct {
+	// PathCorrection removes leading slashes from the request path.
+	// Defaults to false, however is highly recommended to turn it on.
 	PathCorrection bool
-	Routes         *Trie
+	// PathCorrectionNoRedirect if `PathCorrection` is set to true,
+	// it will execute the handlers chain without redirection.
+	// Defaults to false.
+	PathCorrectionNoRedirect bool
+	Routes                   *Trie
 
 	paramsPool *sync.Pool
 
@@ -157,18 +163,20 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// update the new path and redirect.
 			// use Trim to ensure there is no open redirect due to two leading slashes
 			r.URL.Path = pathSep + strings.Trim(path, pathSep)
-			url := r.URL.String()
-			method := r.Method
-			// Fixes https://github.com/kataras/iris/issues/921
-			// This is caused for security reasons, imagine a payment shop,
-			// you can't just permantly redirect a POST request, so just 307 (RFC 7231, 6.4.7).
-			if method == http.MethodPost || method == http.MethodPut {
-				http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+			if !m.PathCorrectionNoRedirect {
+				url := r.URL.String()
+				method := r.Method
+				// Fixes https://github.com/kataras/iris/issues/921
+				// This is caused for security reasons, imagine a payment shop,
+				// you can't just permantly redirect a POST request, so just 307 (RFC 7231, 6.4.7).
+				if method == http.MethodPost || method == http.MethodPut {
+					http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+					return
+				}
+
+				http.Redirect(w, r, url, http.StatusMovedPermanently)
 				return
 			}
-
-			http.Redirect(w, r, url, http.StatusMovedPermanently)
-			return
 		}
 	}
 
