@@ -48,14 +48,7 @@ var NoContentHandler http.Handler = http.HandlerFunc(func(w http.ResponseWriter,
 type MethodHandler struct {
 	// origin *Mux
 
-	handlers map[string]http.Handler // method:handler
-	// Handle/HandleFunc can accept more than one methods per handler separated by comma or space,
-	// however in order to not repeat ourselves for every handler:
-	// extra methods will be not registered to a handler but they can register
-	// the route so it can be reachable, it is binded to a handler which just sends status no content,
-	// can be used for OPTIONS on cors.
-	noContentMethods []string
-
+	handlers          map[string]http.Handler // method:handler
 	methodsAllowedStr string
 }
 

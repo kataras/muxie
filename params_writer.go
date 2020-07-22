@@ -1,8 +1,6 @@
 package muxie
 
-import (
-	"net/http"
-)
+import "net/http"
 
 // GetParam returns the path parameter value based on its key, i.e
 // "/hello/:name", the parameter key is the "name".
@@ -54,6 +52,11 @@ type ParamEntry struct {
 // that will be passed to the next handler in the chain.
 type ResponseWriter interface {
 	http.ResponseWriter
+	http.Flusher
+	http.Pusher
+	http.Hijacker
+	http.CloseNotifier
+
 	ParamsSetter
 	Get(string) string
 	GetAll() []ParamEntry
@@ -61,6 +64,11 @@ type ResponseWriter interface {
 
 type paramsWriter struct {
 	http.ResponseWriter
+	http.Flusher
+	http.Pusher
+	http.Hijacker
+	http.CloseNotifier
+
 	params []ParamEntry
 }
 
@@ -103,27 +111,35 @@ func (pw *paramsWriter) GetAll() []ParamEntry {
 
 func (pw *paramsWriter) reset(w http.ResponseWriter) {
 	pw.ResponseWriter = w
-	pw.params = pw.params[0:0]
-}
 
-// Flusher indicates if `Flush` is supported by the client.
-//
-// The default HTTP/1.x and HTTP/2 ResponseWriter implementations
-// support Flusher, but ResponseWriter wrappers may not. Handlers
-// should always test for this ability at runtime.
-//
-// Note that even for ResponseWriters that support Flush,
-// if the client is connected through an HTTP proxy,
-// the buffered data may not reach the client until the response
-// completes.
-func (pw *paramsWriter) Flusher() (http.Flusher, bool) {
-	flusher, canFlush := pw.ResponseWriter.(http.Flusher)
-	return flusher, canFlush
-}
-
-// Flush sends any buffered data to the client.
-func (pw *paramsWriter) Flush() {
-	if flusher, ok := pw.Flusher(); ok {
-		flusher.Flush()
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		flusher = nil // make sure interface value is nil.
 	}
+
+	pusher, ok := w.(http.Pusher)
+	if !ok {
+		pusher = nil
+	}
+
+	hijacker, ok := w.(http.Hijacker)
+	if !ok {
+		hijacker = nil
+	}
+
+	// This interface is obselete by Go authors
+	// and we only capture it
+	// for compatible reasons. End-developers SHOULD replace
+	// the use of CloseNotifier with the: Request.Context().Done() channel.
+	closeNotifier, ok := w.(http.CloseNotifier)
+	if !ok {
+		closeNotifier = nil
+	}
+
+	pw.Flusher = flusher
+	pw.Pusher = pusher
+	pw.Hijacker = hijacker
+	pw.CloseNotifier = closeNotifier
+
+	pw.params = pw.params[0:0]
 }
