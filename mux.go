@@ -45,7 +45,7 @@ func NewMux() *Mux {
 		Routes: NewTrie(),
 		paramsPool: &sync.Pool{
 			New: func() interface{} {
-				return &paramsWriter{}
+				return &Writer{}
 			},
 		},
 		root: "",
@@ -187,7 +187,7 @@ func (m *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// and it will be compatible with net/http will be introduced to store the params at least,
 	// we don't want to add a third parameter or a global state to this library.
 
-	pw := m.paramsPool.Get().(*paramsWriter)
+	pw := m.paramsPool.Get().(*Writer)
 	pw.reset(w)
 	n := m.Routes.Search(path, pw)
 	if n != nil {

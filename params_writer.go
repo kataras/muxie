@@ -11,7 +11,7 @@ import "net/http"
 //
 // The function will do its job only if the given "w" http.ResponseWriter interface is an `ResponseWriter`.
 func GetParam(w http.ResponseWriter, key string) string {
-	if store, ok := w.(ResponseWriter); ok {
+	if store, ok := w.(*Writer); ok {
 		return store.Get(key)
 	}
 
@@ -22,7 +22,7 @@ func GetParam(w http.ResponseWriter, key string) string {
 //
 // The function will do its job only if the given "w" http.ResponseWriter interface is an `ResponseWriter`.
 func GetParams(w http.ResponseWriter) []ParamEntry {
-	if store, ok := w.(ResponseWriter); ok {
+	if store, ok := w.(*Writer); ok {
 		return store.GetAll()
 	}
 
@@ -33,7 +33,7 @@ func GetParams(w http.ResponseWriter) []ParamEntry {
 // This is not commonly used by the end-developers,
 // unless sharing values(string messages only) between handlers is absolutely necessary.
 func SetParam(w http.ResponseWriter, key, value string) bool {
-	if store, ok := w.(ResponseWriter); ok {
+	if store, ok := w.(*Writer); ok {
 		store.Set(key, value)
 		return true
 	}
@@ -47,37 +47,18 @@ type ParamEntry struct {
 	Value string
 }
 
-// ResponseWriter is the muxie's specific ResponseWriter to hold the path parameters.
+// Writer is the muxie's specific ResponseWriter to hold the path parameters.
 // Usage: use this to cast a handler's `http.ResponseWriter` and pass it as an embedded parameter to custom response writer
 // that will be passed to the next handler in the chain.
-type ResponseWriter interface {
+type Writer struct {
 	http.ResponseWriter
-	http.Flusher
-	http.Pusher
-	http.Hijacker
-	http.CloseNotifier
-
-	ParamsSetter
-	Get(string) string
-	GetAll() []ParamEntry
-}
-
-type paramsWriter struct {
-	http.ResponseWriter
-	http.Flusher
-	http.Pusher
-	http.Hijacker
-	http.CloseNotifier
-
 	params []ParamEntry
 }
-
-var _ ResponseWriter = (*paramsWriter)(nil)
 
 // Set implements the `ParamsSetter` which `Trie#Search` needs to store the parameters, if any.
 // These are decoupled because end-developers may want to use the trie to design a new Mux of their own
 // or to store different kind of data inside it.
-func (pw *paramsWriter) Set(key, value string) {
+func (pw *Writer) Set(key, value string) {
 	if ln := len(pw.params); cap(pw.params) > ln {
 		pw.params = pw.params[:ln+1]
 		p := &pw.params[ln]
@@ -93,7 +74,7 @@ func (pw *paramsWriter) Set(key, value string) {
 }
 
 // Get returns the value of the associated parameter based on its key/name.
-func (pw *paramsWriter) Get(key string) string {
+func (pw *Writer) Get(key string) string {
 	n := len(pw.params)
 	for i := 0; i < n; i++ {
 		if kv := pw.params[i]; kv.Key == key {
@@ -105,41 +86,11 @@ func (pw *paramsWriter) Get(key string) string {
 }
 
 // GetAll returns all the path parameters keys-values.
-func (pw *paramsWriter) GetAll() []ParamEntry {
+func (pw *Writer) GetAll() []ParamEntry {
 	return pw.params
 }
 
-func (pw *paramsWriter) reset(w http.ResponseWriter) {
+func (pw *Writer) reset(w http.ResponseWriter) {
 	pw.ResponseWriter = w
-
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		flusher = nil // make sure interface value is nil.
-	}
-
-	pusher, ok := w.(http.Pusher)
-	if !ok {
-		pusher = nil
-	}
-
-	hijacker, ok := w.(http.Hijacker)
-	if !ok {
-		hijacker = nil
-	}
-
-	// This interface is obselete by Go authors
-	// and we only capture it
-	// for compatible reasons. End-developers SHOULD replace
-	// the use of CloseNotifier with the: Request.Context().Done() channel.
-	closeNotifier, ok := w.(http.CloseNotifier)
-	if !ok {
-		closeNotifier = nil
-	}
-
-	pw.Flusher = flusher
-	pw.Pusher = pusher
-	pw.Hijacker = hijacker
-	pw.CloseNotifier = closeNotifier
-
 	pw.params = pw.params[0:0]
 }

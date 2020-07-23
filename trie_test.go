@@ -133,7 +133,7 @@ func testTrie(t *testing.T, oneByOne bool) {
 		if oneByOne {
 			tree.insert(tt.key, tt.routeName, nil, nil)
 		}
-		params := new(paramsWriter)
+		params := new(Writer)
 		for reqIdx, req := range tt.requests {
 			params.reset(nil)
 			n := tree.Search(req.path, params)

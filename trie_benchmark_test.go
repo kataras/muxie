@@ -26,7 +26,7 @@ func BenchmarkTrieInsert(b *testing.B) {
 func BenchmarkTrieSearch(b *testing.B) {
 	tree := NewTrie()
 	initTree(tree)
-	params := new(paramsWriter)
+	params := new(Writer)
 
 	b.ReportAllocs()
 	b.ResetTimer()
