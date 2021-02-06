@@ -2,6 +2,16 @@ package muxie
 
 import "net/http"
 
+// ParamStore should be completed by http.ResponseWriter to support dynamic path parameters.
+// See the `Writer` type for more.
+// This interface can be implemented by custom response writers.
+// Example of implementation: to change where and how the parameters are stored and retrieved.
+type ParamStore interface {
+	Set(key string, value string)
+	Get(key string) string
+	GetAll() []ParamEntry
+}
+
 // GetParam returns the path parameter value based on its key, i.e
 // "/hello/:name", the parameter key is the "name".
 // For example if a route with pattern of "/hello/:name" is inserted to the `Trie` or handlded by the `Mux`
@@ -9,20 +19,20 @@ import "net/http"
 // then the `GetParam("name")` will return the value of "kataras".
 // If not associated value with that key is found then it will return an empty string.
 //
-// The function will do its job only if the given "w" http.ResponseWriter interface is an `ResponseWriter`.
+// The function will do its job only if the given "w" http.ResponseWriter interface is a `ParamStore`.
 func GetParam(w http.ResponseWriter, key string) string {
-	if store, ok := w.(*Writer); ok {
+	if store, ok := w.(ParamStore); ok {
 		return store.Get(key)
 	}
 
 	return ""
 }
 
-// GetParams returns all the available parameters based on the "w" http.ResponseWriter which should be a ResponseWriter.
+// GetParams returns all the available parameters based on the "w" http.ResponseWriter which should be a ParamStore.
 //
-// The function will do its job only if the given "w" http.ResponseWriter interface is an `ResponseWriter`.
+// The function will do its job only if the given "w" http.ResponseWriter interface is a `ParamStore`.
 func GetParams(w http.ResponseWriter) []ParamEntry {
-	if store, ok := w.(*Writer); ok {
+	if store, ok := w.(ParamStore); ok {
 		return store.GetAll()
 	}
 
@@ -33,7 +43,7 @@ func GetParams(w http.ResponseWriter) []ParamEntry {
 // This is not commonly used by the end-developers,
 // unless sharing values(string messages only) between handlers is absolutely necessary.
 func SetParam(w http.ResponseWriter, key, value string) bool {
-	if store, ok := w.(*Writer); ok {
+	if store, ok := w.(ParamStore); ok {
 		store.Set(key, value)
 		return true
 	}
@@ -54,6 +64,8 @@ type Writer struct {
 	http.ResponseWriter
 	params []ParamEntry
 }
+
+var _ ParamStore = (*Writer)(nil)
 
 // Set implements the `ParamsSetter` which `Trie#Search` needs to store the parameters, if any.
 // These are decoupled because end-developers may want to use the trie to design a new Mux of their own
